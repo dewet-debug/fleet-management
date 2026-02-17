@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Note: SQLite doesn't support enums. We use String fields with validation at the app layer.
+// UserRole: ADMIN, FLEET_MANAGER, SERVICE_COMPANY
+// VehicleStatus: ACTIVE, IN_SERVICE, OUT_OF_SERVICE, RETIRED
+// DriverStatus: ACTIVE, INACTIVE, SUSPENDED
+// AssignmentStatus: ACTIVE, ENDED
+// ServiceStatus: DRAFT, SCHEDULED, AUTHORIZED, IN_PROGRESS, COMPLETED, APPROVED, RETURNED
+// ConditionRating: EXCELLENT, GOOD, FAIR, POOR, CRITICAL
+// PhotoType: BEFORE_SERVICE, DURING_SERVICE, AFTER_SERVICE, DAMAGE, GENERAL
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         String    @default("FLEET_MANAGER")
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  assignmentsCreated         Assignment[]           @relation("AssignmentCreatedBy")
+  serviceRecordsAuthorized   ServiceRecord[]        @relation("ServiceAuthorizedBy")
+  serviceRecordsApproved     ServiceRecord[]        @relation("ServiceApprovedBy")
+  serviceRecordsCreated      ServiceRecord[]        @relation("ServiceCreatedBy")
+  serviceStatusHistories     ServiceStatusHistory[]
+  photosUploaded             Photo[]
+  auditLogs                  AuditLog[]
+}
+
+model Vehicle {
+  id             String   @id @default(uuid())
+  vin            String   @unique
+  licensePlate   String   @unique
+  make           String
+  model          String
+  year           Int
+  color          String
+  status         String   @default("ACTIVE")
+  currentKilometers Int      @default(0)
+  fuelType          String
+  purchaseDate       DateTime?
+  purchasePrice      Float?
+  currency           String    @default("ZAR")
+  fleetNumber        String?
+  leaseCompany       String?
+  leaseAgreementNo   String?
+  leaseStartDate     DateTime?
+  leaseEndDate       DateTime?
+  monthlyLeaseCost   Float?
+  currentBookValue   Float?
+  insuranceProvider  String?
+  insurancePolicyNo  String?
+  coverageType       String?
+  policyStartDate    DateTime?
+  policyExpiryDate   DateTime?
+  premiumAmount      Float?
+  registrationExpiry DateTime?
+  warrantyExpiry     DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  assignments             Assignment[]
+  serviceRecords          ServiceRecord[]
+  vehicleServiceIntervals VehicleServiceInterval[]
+}
+
+model Driver {
+  id            String   @id @default(uuid())
+  employeeId    String   @unique
+  firstName     String
+  lastName      String
+  email         String   @unique
+  phone         String?
+  licenseNumber String
+  licenseExpiry DateTime
+  status        String   @default("ACTIVE")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignments    Assignment[]
+  serviceRecords ServiceRecord[] @relation("ServiceDriver")
+}
+
+model Assignment {
+  id        String    @id @default(uuid())
+  vehicleId String
+  driverId  String
+  status    String    @default("ACTIVE")
+  startDate DateTime
+  endDate   DateTime?
+  notes     String?
+  createdBy String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  vehicle       Vehicle @relation(fields: [vehicleId], references: [id])
+  driver        Driver  @relation(fields: [driverId], references: [id])
+  createdByUser User    @relation("AssignmentCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([createdBy])
+}
+
+model ServiceProvider {
+  id          String   @id @default(uuid())
+  name        String
+  contactName String
+  email       String
+  phone       String
+  address     String
+  specialties String   @default("[]")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  serviceRecords ServiceRecord[]
+}
+
+model ServiceTypeConfig {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  category          String?
+  estimatedDuration String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  serviceIntervalConfigs ServiceIntervalConfig[]
+  serviceRecords         ServiceRecord[]
+}
+
+model ServiceIntervalConfig {
+  id               String   @id @default(uuid())
+  serviceTypeId    String
+  vehicleMake      String?
+  vehicleModel     String?
+  kilometerInterval Int?
+  timeIntervalDays Int?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  serviceType             ServiceTypeConfig        @relation(fields: [serviceTypeId], references: [id])
+  vehicleServiceIntervals VehicleServiceInterval[]
+
+  @@index([serviceTypeId])
+}
+
+model VehicleServiceInterval {
+  id                      String    @id @default(uuid())
+  vehicleId               String
+  serviceIntervalConfigId String
+  lastServiceDate         DateTime?
+  lastServiceKilometers   Int?
+  nextServiceDate         DateTime?
+  nextServiceKilometers   Int?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  vehicle               Vehicle               @relation(fields: [vehicleId], references: [id])
+  serviceIntervalConfig ServiceIntervalConfig @relation(fields: [serviceIntervalConfigId], references: [id])
+
+  @@index([vehicleId])
+  @@index([serviceIntervalConfigId])
+}
+
+model ServiceRecord {
+  id                  String    @id @default(uuid())
+  vehicleId           String
+  serviceProviderId   String?
+  serviceTypeConfigId String
+  status              String    @default("DRAFT")
+  description         String
+  scheduledDate       DateTime?
+  authorizedBy        String?
+  authorizedAt        DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  approvedBy          String?
+  approvedAt          DateTime?
+  returnedAt          DateTime?
+  driverId            String?
+  laborCost           Float?
+  partsCost           Float?
+  additionalCharges   Float?
+  vatAmount           Float?
+  totalCostExclVat    Float?
+  totalCostInclVat    Float?
+  currency            String   @default("ZAR")
+  invoiceNumber       String?
+  invoiceDate         DateTime?
+  paymentMethod       String?
+  isWarrantyClaim     Boolean  @default(false)
+  kilometersAtService Int?
+  conditionBefore     String?
+  conditionAfter      String?
+  technicianNotes     String?
+  internalNotes       String?
+  createdBy           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  vehicle           Vehicle          @relation(fields: [vehicleId], references: [id])
+  serviceProvider   ServiceProvider? @relation(fields: [serviceProviderId], references: [id])
+  serviceType       ServiceTypeConfig @relation(fields: [serviceTypeConfigId], references: [id])
+  driver            Driver?          @relation("ServiceDriver", fields: [driverId], references: [id])
+  authorizedByUser  User?            @relation("ServiceAuthorizedBy", fields: [authorizedBy], references: [id])
+  approvedByUser    User?            @relation("ServiceApprovedBy", fields: [approvedBy], references: [id])
+  createdByUser     User             @relation("ServiceCreatedBy", fields: [createdBy], references: [id])
+
+  statusHistory ServiceStatusHistory[]
+  photos        Photo[]
+
+  @@index([vehicleId])
+  @@index([serviceProviderId])
+  @@index([driverId])
+  @@index([serviceTypeConfigId])
+  @@index([authorizedBy])
+  @@index([approvedBy])
+  @@index([createdBy])
+}
+
+model ServiceStatusHistory {
+  id              String   @id @default(uuid())
+  serviceRecordId String
+  fromStatus      String?
+  toStatus        String
+  changedBy       String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  serviceRecord ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+  changedByUser User          @relation(fields: [changedBy], references: [id])
+
+  @@index([serviceRecordId])
+  @@index([changedBy])
+}
+
+model Photo {
+  id              String   @id @default(uuid())
+  serviceRecordId String
+  url             String
+  filename        String
+  mimeType        String
+  size            Int
+  type            String
+  caption         String?
+  uploadedBy      String
+  createdAt       DateTime @default(now())
+
+  serviceRecord  ServiceRecord @relation(fields: [serviceRecordId], references: [id])
+  uploadedByUser User          @relation(fields: [uploadedBy], references: [id])
+
+  @@index([serviceRecordId])
+  @@index([uploadedBy])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+}
