@@ -1,23 +1,11 @@
-================================================================================
-FLEET MANAGEMENT APPLICATION - COMPLETE SOURCE CODE
-Generated: 18 Feb 2026 20:04:23
-Total files: 131
-================================================================================
+==================================================
+FLEET MANAGEMENT - COMPLETE SOURCE CODE
+Generated: 18 Feb 2026 20:29:43
+==================================================
 
-================================================================================
-FILE: ./.gitignore
-================================================================================
-node_modules/
-dist/
-.env
-uploads/
-*.log
-.DS_Store
-
-
-================================================================================
+==================================================
 FILE: ./client/index.html
-================================================================================
+==================================================
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -33,9 +21,9 @@ FILE: ./client/index.html
 </html>
 
 
-================================================================================
+==================================================
 FILE: ./client/package.json
-================================================================================
+==================================================
 {
   "name": "client",
   "version": "1.0.0",
@@ -69,9 +57,9 @@ FILE: ./client/package.json
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/postcss.config.js
-================================================================================
+==================================================
 export default {
   plugins: {
     tailwindcss: {},
@@ -80,9 +68,9 @@ export default {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/assignments.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface Assignment {
@@ -144,9 +132,9 @@ export const endAssignment = async (id: string): Promise<Assignment> => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/auth.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface User {
@@ -200,9 +188,9 @@ export const refreshToken = async (): Promise<LoginResponse> => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/cartrack.ts
-================================================================================
+==================================================
 import client from './client';
 
 // ---- Types ----
@@ -356,9 +344,9 @@ export const getVehicleGroups = async (params?: { page?: number; limit?: number 
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/client.ts
-================================================================================
+==================================================
 import axios from 'axios';
 
 const client = axios.create({
@@ -467,9 +455,9 @@ client.interceptors.response.use(
 export default client;
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/dashboard.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface DashboardMetrics {
@@ -519,9 +507,9 @@ export const getAlerts = async (): Promise<Alert[]> => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/drivers.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface Driver {
@@ -584,9 +572,9 @@ export const getDriverCosts = async (id: string, period: 'weekly' | 'monthly' = 
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/services.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface ServicesParams {
@@ -594,6 +582,8 @@ export interface ServicesParams {
   limit?: number;
   status?: string;
   vehicleId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface TransitionData {
@@ -657,9 +647,9 @@ export const updateServiceInterval = async (id: string, intervalData: any) => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/uploads.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface UploadedPhoto {
@@ -699,9 +689,9 @@ export const deletePhoto = async (id: string): Promise<void> => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/users.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface User {
@@ -774,9 +764,9 @@ export const deleteUser = async (id: string): Promise<void> => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/api/vehicles.ts
-================================================================================
+==================================================
 import client from './client';
 
 export interface Vehicle {
@@ -864,9 +854,9 @@ export async function getVehicleCosts(id: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/App.tsx
-================================================================================
+==================================================
 import { Routes, Route } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -946,9 +936,9 @@ export default function App() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/layout/AppLayout.tsx
-================================================================================
+==================================================
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -968,9 +958,9 @@ export default function AppLayout() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/layout/Header.tsx
-================================================================================
+==================================================
 import { useAuth } from '../../context/AuthContext';
 import { HiArrowRightOnRectangle } from 'react-icons/hi2';
 
@@ -1000,9 +990,9 @@ export default function Header() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/layout/ProtectedRoute.tsx
-================================================================================
+==================================================
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { LoadingSpinner } from '../ui';
@@ -1035,9 +1025,9 @@ export default function ProtectedRoute({ roles, children }: Props) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/layout/Sidebar.tsx
-================================================================================
+==================================================
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -1123,9 +1113,9 @@ export default function Sidebar() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Badge.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 
@@ -1165,9 +1155,9 @@ export const Badge: React.FC<BadgeProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Button.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -1231,9 +1221,9 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Card.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 
@@ -1262,9 +1252,9 @@ export const Card: React.FC<CardProps> = ({ children, className, title }) => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/ConfirmDialog.tsx
-================================================================================
+==================================================
 import React from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
@@ -1304,9 +1294,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/EmptyState.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 import { Button } from './Button';
@@ -1357,9 +1347,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/index.ts
-================================================================================
+==================================================
 export { Button } from './Button';
 export { Input } from './Input';
 export { Select } from './Select';
@@ -1373,9 +1363,9 @@ export { EmptyState } from './EmptyState';
 export { ConfirmDialog } from './ConfirmDialog';
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Input.tsx
-================================================================================
+==================================================
 import React, { forwardRef } from 'react';
 import clsx from 'clsx';
 
@@ -1436,9 +1426,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 Input.displayName = 'Input';
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/LoadingSpinner.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 
@@ -1485,9 +1475,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Modal.tsx
-================================================================================
+==================================================
 import React, { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
@@ -1596,9 +1586,9 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Pagination.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
@@ -1707,9 +1697,9 @@ export const Pagination: React.FC<PaginationProps> = ({
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Select.tsx
-================================================================================
+==================================================
 import React, { forwardRef } from 'react';
 import clsx from 'clsx';
 
@@ -1779,9 +1769,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 Select.displayName = 'Select';
 
 
-================================================================================
+==================================================
 FILE: ./client/src/components/ui/Table.tsx
-================================================================================
+==================================================
 import React from 'react';
 import clsx from 'clsx';
 
@@ -1872,9 +1862,9 @@ export function Table<T extends Record<string, unknown>>({
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/context/AuthContext.tsx
-================================================================================
+==================================================
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as apiLogin, logout as apiLogout, getMe } from '../api/auth';
@@ -1950,9 +1940,9 @@ export const useAuth = (): AuthContextType => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useAssignments.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getAssignments, createAssignment, endAssignment } from '../api/assignments';
@@ -2000,9 +1990,9 @@ export const useEndAssignment = () => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useCartrack.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getCartrackConfig,
@@ -2117,9 +2107,9 @@ export const useSyncLog = (id: string) =>
   useQuery({ queryKey: ['cartrack', 'sync-logs', id], queryFn: () => getSyncLogById(id), enabled: !!id });
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useDashboard.ts
-================================================================================
+==================================================
 import { useQuery } from '@tanstack/react-query';
 import { getMetrics, getActivity, getAlerts } from '../api/dashboard';
 
@@ -2148,9 +2138,9 @@ export const useDashboardAlerts = () => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useDrivers.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -2232,9 +2222,9 @@ export const useDriverCosts = (id: string, period: 'weekly' | 'monthly') => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useServices.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getServices,
@@ -2340,9 +2330,9 @@ export const useUpdateServiceInterval = () => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useUsers.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { getUsers, getUser, createUser, updateUser, deleteUser } from '../api/users';
@@ -2409,9 +2399,9 @@ export const useDeleteUser = () => {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/src/hooks/useVehicles.ts
-================================================================================
+==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
@@ -2509,9 +2499,9 @@ export function useVehicleCosts(id: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/index.css
-================================================================================
+==================================================
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -2521,9 +2511,9 @@ body {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/main.tsx
-================================================================================
+==================================================
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -2553,10 +2543,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/AssignmentListPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAssignments, useCreateAssignment, useEndAssignment } from '../hooks/useAssignments';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
@@ -2565,8 +2556,9 @@ import { HiPlus, HiStop } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 export default function AssignmentListPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showCreate, setShowCreate] = useState(false);
   const [endId, setEndId] = useState<string | null>(null);
   const [form, setForm] = useState({ vehicleId: '', driverId: '', startDate: new Date().toISOString().split('T')[0], notes: '' });
@@ -2678,9 +2670,9 @@ export default function AssignmentListPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/CartrackIntegrationPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { Card, Badge, Button, Input, Modal, ConfirmDialog, LoadingSpinner, Pagination } from '../components/ui';
 import {
@@ -3073,9 +3065,9 @@ function SyncLogsTab() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/DashboardPage.tsx
-================================================================================
+==================================================
 import { Link } from 'react-router-dom';
 import { useDashboardMetrics, useDashboardActivity, useDashboardAlerts } from '../hooks/useDashboard';
 import { Card, Badge, LoadingSpinner } from '../components/ui';
@@ -3087,19 +3079,32 @@ import {
   HiPlus,
   HiExclamationTriangle,
   HiCurrencyDollar,
+  HiChevronRight,
 } from 'react-icons/hi2';
 import { formatCurrency } from '../utils/currency';
 
 const metricConfig = [
-  { key: 'totalVehicles', label: 'Total Vehicles', icon: HiTruck, color: 'bg-blue-500' },
-  { key: 'activeVehicles', label: 'Active Vehicles', icon: HiTruck, color: 'bg-green-500' },
-  { key: 'inServiceVehicles', label: 'In Service', icon: HiWrenchScrewdriver, color: 'bg-yellow-500' },
-  { key: 'totalDrivers', label: 'Total Drivers', icon: HiUsers, color: 'bg-purple-500' },
-  { key: 'activeDrivers', label: 'Active Drivers', icon: HiUsers, color: 'bg-indigo-500' },
-  { key: 'activeAssignments', label: 'Active Assignments', icon: HiArrowsRightLeft, color: 'bg-cyan-500' },
-  { key: 'totalServiceRecords', label: 'Service Records', icon: HiWrenchScrewdriver, color: 'bg-orange-500' },
-  { key: 'pendingServices', label: 'Pending Services', icon: HiExclamationTriangle, color: 'bg-red-500' },
+  { key: 'totalVehicles', label: 'Total Vehicles', icon: HiTruck, color: 'bg-blue-500', link: '/vehicles' },
+  { key: 'activeVehicles', label: 'Active Vehicles', icon: HiTruck, color: 'bg-green-500', link: '/vehicles?status=ACTIVE' },
+  { key: 'inServiceVehicles', label: 'In Service', icon: HiWrenchScrewdriver, color: 'bg-yellow-500', link: '/vehicles?status=IN_SERVICE' },
+  { key: 'totalDrivers', label: 'Total Drivers', icon: HiUsers, color: 'bg-purple-500', link: '/drivers' },
+  { key: 'activeDrivers', label: 'Active Drivers', icon: HiUsers, color: 'bg-indigo-500', link: '/drivers?status=ACTIVE' },
+  { key: 'activeAssignments', label: 'Active Assignments', icon: HiArrowsRightLeft, color: 'bg-cyan-500', link: '/assignments?status=ACTIVE' },
+  { key: 'totalServiceRecords', label: 'Service Records', icon: HiWrenchScrewdriver, color: 'bg-orange-500', link: '/services' },
+  { key: 'pendingServices', label: 'Pending Services', icon: HiExclamationTriangle, color: 'bg-red-500', link: '/services?status=DRAFT,SCHEDULED,AUTHORIZED' },
 ];
+
+function getFinancialLinks() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
+  return {
+    mtd: `/services?dateFrom=${year}-${month}-01&dateTo=${today}`,
+    ytd: `/services?dateFrom=${year}-01-01&dateTo=${today}`,
+  };
+}
 
 export default function DashboardPage() {
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
@@ -3123,50 +3128,59 @@ export default function DashboardPage() {
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {metricConfig.map((m) => (
-          <Card key={m.key} className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className={`${m.color} p-2 rounded-lg`}>
-                <m.icon className="text-xl text-white" />
+          <Link key={m.key} to={m.link} className="group">
+            <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+              <div className="flex items-center gap-3">
+                <div className={`${m.color} p-2 rounded-lg`}>
+                  <m.icon className="text-xl text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {metricsLoading ? '...' : (metrics as any)?.[m.key] ?? 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{m.label}</p>
+                </div>
+                <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metricsLoading ? '...' : (metrics as any)?.[m.key] ?? 0}
-                </p>
-                <p className="text-xs text-gray-500">{m.label}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         ))}
       </div>
 
       {/* Financial Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="!p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-500 p-2 rounded-lg">
-              <HiCurrencyDollar className="text-xl text-white" />
+        <Link to={getFinancialLinks().mtd} className="group">
+          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500 p-2 rounded-lg">
+                <HiCurrencyDollar className="text-xl text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-gray-900">
+                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsMTD ?? 0, 'ZAR')}
+                </p>
+                <p className="text-xs text-gray-500">Service Costs MTD</p>
+              </div>
+              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsMTD ?? 0, 'ZAR')}
-              </p>
-              <p className="text-xs text-gray-500">Service Costs MTD</p>
+          </Card>
+        </Link>
+        <Link to={getFinancialLinks().ytd} className="group">
+          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+            <div className="flex items-center gap-3">
+              <div className="bg-teal-500 p-2 rounded-lg">
+                <HiCurrencyDollar className="text-xl text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-gray-900">
+                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsYTD ?? 0, 'ZAR')}
+                </p>
+                <p className="text-xs text-gray-500">Service Costs YTD</p>
+              </div>
+              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-          </div>
-        </Card>
-        <Card className="!p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-teal-500 p-2 rounded-lg">
-              <HiCurrencyDollar className="text-xl text-white" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsYTD ?? 0, 'ZAR')}
-              </p>
-              <p className="text-xs text-gray-500">Service Costs YTD</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -3226,9 +3240,9 @@ export default function DashboardPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/DriverDetailPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDriver, useUpdateDriver, useDeleteDriver, useDriverCosts } from '../hooks/useDrivers';
@@ -3444,11 +3458,11 @@ export default function DriverDetailPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/DriverListPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useDrivers, useCreateDriver } from '../hooks/useDrivers';
 import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
 import { HiPlus, HiEye } from 'react-icons/hi2';
@@ -3464,9 +3478,10 @@ const defaultForm = {
 };
 
 export default function DriverListPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
@@ -3568,9 +3583,9 @@ export default function DriverListPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/LoginPage.tsx
-================================================================================
+==================================================
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -3647,9 +3662,9 @@ export default function LoginPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/ServiceDetailPage.tsx
-================================================================================
+==================================================
 import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useService, useTransitionService, useUpdateService } from '../hooks/useServices';
@@ -3909,9 +3924,9 @@ export default function ServiceDetailPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/ServiceIntervalsPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useServiceIntervals, useCreateServiceInterval, useUpdateServiceInterval, useServiceTypes } from '../hooks/useServices';
 import { Button, Input, Select, Badge, Modal, LoadingSpinner } from '../components/ui';
@@ -4032,15 +4047,15 @@ export default function ServiceIntervalsPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/ServiceListPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useServices, useCreateService, useServiceTypes } from '../hooks/useServices';
 import { useVehicles } from '../hooks/useVehicles';
 import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
-import { HiPlus, HiEye } from 'react-icons/hi2';
+import { HiPlus, HiEye, HiXMark } from 'react-icons/hi2';
 import { formatCurrency, CURRENCY_OPTIONS } from '../utils/currency';
 import toast from 'react-hot-toast';
 
@@ -4050,15 +4065,24 @@ const statusColors: Record<string, 'gray' | 'blue' | 'purple' | 'yellow' | 'gree
 };
 
 export default function ServiceListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') || '');
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') || '');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     vehicleId: '', serviceTypeConfigId: '', description: '',
     scheduledDate: '', serviceProviderId: '',
   });
 
-  const { data, isLoading } = useServices({ page, limit: 20, status: statusFilter || undefined });
+  const hasDateFilter = dateFrom || dateTo;
+  const { data, isLoading } = useServices({
+    page, limit: 20,
+    status: statusFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  });
   const { data: serviceTypes } = useServiceTypes();
   const { data: vehicles } = useVehicles({ limit: 100 });
   const createService = useCreateService();
@@ -4087,13 +4111,26 @@ export default function ServiceListPage() {
         <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> New Service</Button>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap items-end">
         <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           options={[
             { value: '', label: 'All Statuses' },
+            { value: 'DRAFT,SCHEDULED,AUTHORIZED', label: 'Pending (Draft/Scheduled/Authorized)' },
             ...['DRAFT', 'SCHEDULED', 'AUTHORIZED', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'RETURNED']
               .map((s) => ({ value: s, label: s.replace('_', ' ') })),
           ]} />
+        <Input label="From" type="date" value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className="max-w-[180px]" />
+        <Input label="To" type="date" value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className="max-w-[180px]" />
+        {(statusFilter || hasDateFilter) && (
+          <button
+            onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); setPage(1); setSearchParams({}); }}
+            className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <HiXMark /> Clear Filters
+          </button>
+        )}
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
@@ -4163,9 +4200,9 @@ export default function ServiceListPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/ServiceProviderPortalPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useServices, useTransitionService, useUpdateService } from '../hooks/useServices';
 import { Card, Badge, Button, Input, Modal, Pagination, LoadingSpinner } from '../components/ui';
@@ -4281,9 +4318,9 @@ export default function ServiceProviderPortalPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/ServiceTypesPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useServiceTypes, useCreateServiceType, useUpdateServiceType } from '../hooks/useServices';
 import { Button, Input, Badge, Modal, LoadingSpinner } from '../components/ui';
@@ -4379,9 +4416,9 @@ export default function ServiceTypesPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/UserManagementPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../hooks/useUsers';
 import { Button, Input, Select, Badge, Modal, ConfirmDialog, Pagination, LoadingSpinner } from '../components/ui';
@@ -4515,9 +4552,9 @@ export default function UserManagementPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/VehicleDetailPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useVehicle, useUpdateVehicle, useDeleteVehicle, useUpdateKilometers, useVehicleCosts } from '../hooks/useVehicles';
@@ -4881,11 +4918,11 @@ export default function VehicleDetailPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/pages/VehicleListPage.tsx
-================================================================================
+==================================================
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useVehicles, useCreateVehicle } from '../hooks/useVehicles';
 import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
 import { HiPlus, HiEye } from 'react-icons/hi2';
@@ -4908,9 +4945,10 @@ const defaultForm = {
 };
 
 export default function VehicleListPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
@@ -5054,9 +5092,9 @@ export default function VehicleListPage() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/src/utils/currency.ts
-================================================================================
+==================================================
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
   EUR: '\u20AC',
@@ -5083,9 +5121,9 @@ export function formatCurrency(amount: number | null | undefined, currencyCode: 
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/tailwind.config.js
-================================================================================
+==================================================
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -5111,9 +5149,9 @@ export default {
 };
 
 
-================================================================================
+==================================================
 FILE: ./client/tsconfig.json
-================================================================================
+==================================================
 {
   "compilerOptions": {
     "target": "ES2020",
@@ -5137,9 +5175,9 @@ FILE: ./client/tsconfig.json
 }
 
 
-================================================================================
+==================================================
 FILE: ./client/vite.config.ts
-================================================================================
+==================================================
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -5163,9 +5201,9 @@ export default defineConfig({
 });
 
 
-================================================================================
+==================================================
 FILE: ./package.json
-================================================================================
+==================================================
 {
   "name": "fleet-management",
   "private": true,
@@ -5182,9 +5220,25 @@ FILE: ./package.json
 }
 
 
-================================================================================
+==================================================
+FILE: ./server/.env
+==================================================
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="fleet-management-jwt-secret-change-in-production"
+JWT_REFRESH_SECRET="fleet-management-refresh-secret-change-in-production"
+PORT=3001
+UPLOAD_DIR="./uploads"
+
+# Cartrack API Integration
+CARTRACK_API_BASE_URL=https://fleetapi-za.cartrack.com/rest/
+CARTRACK_API_USERNAME=
+CARTRACK_API_PASSWORD=
+CARTRACK_ENCRYPTION_KEY=change-this-in-production-32chars
+
+
+==================================================
 FILE: ./server/package.json
-================================================================================
+==================================================
 {
   "name": "server",
   "version": "1.0.0",
@@ -5226,747 +5280,9 @@ FILE: ./server/package.json
 }
 
 
-================================================================================
-FILE: ./server/prisma/migrations/20260217152257_init/migration.sql
-================================================================================
--- CreateTable
-CREATE TABLE "User" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "email" TEXT NOT NULL,
-    "passwordHash" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
-    "role" TEXT NOT NULL DEFAULT 'FLEET_MANAGER',
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "lastLoginAt" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "Vehicle" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vin" TEXT NOT NULL,
-    "licensePlate" TEXT NOT NULL,
-    "make" TEXT NOT NULL,
-    "model" TEXT NOT NULL,
-    "year" INTEGER NOT NULL,
-    "color" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-    "currentKilometers" INTEGER NOT NULL DEFAULT 0,
-    "fuelType" TEXT NOT NULL,
-    "purchaseDate" DATETIME,
-    "purchasePrice" REAL,
-    "currency" TEXT NOT NULL DEFAULT 'USD',
-    "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "Driver" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "employeeId" TEXT NOT NULL,
-    "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
-    "phone" TEXT,
-    "licenseNumber" TEXT NOT NULL,
-    "licenseExpiry" DATETIME NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-    "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "Assignment" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "driverId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-    "startDate" DATETIME NOT NULL,
-    "endDate" DATETIME,
-    "notes" TEXT,
-    "createdBy" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Assignment_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Assignment_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Assignment_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "ServiceProvider" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL,
-    "contactName" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
-    "phone" TEXT NOT NULL,
-    "address" TEXT NOT NULL,
-    "specialties" TEXT NOT NULL DEFAULT '[]',
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "ServiceTypeConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "category" TEXT,
-    "estimatedDuration" TEXT,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "ServiceIntervalConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "serviceTypeId" TEXT NOT NULL,
-    "vehicleMake" TEXT,
-    "vehicleModel" TEXT,
-    "kilometerInterval" INTEGER,
-    "timeIntervalDays" INTEGER,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ServiceIntervalConfig_serviceTypeId_fkey" FOREIGN KEY ("serviceTypeId") REFERENCES "ServiceTypeConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "VehicleServiceInterval" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "serviceIntervalConfigId" TEXT NOT NULL,
-    "lastServiceDate" DATETIME,
-    "lastServiceKilometers" INTEGER,
-    "nextServiceDate" DATETIME,
-    "nextServiceKilometers" INTEGER,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "VehicleServiceInterval_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "VehicleServiceInterval_serviceIntervalConfigId_fkey" FOREIGN KEY ("serviceIntervalConfigId") REFERENCES "ServiceIntervalConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "ServiceRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "serviceProviderId" TEXT,
-    "serviceTypeConfigId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "description" TEXT NOT NULL,
-    "scheduledDate" DATETIME,
-    "authorizedBy" TEXT,
-    "authorizedAt" DATETIME,
-    "startedAt" DATETIME,
-    "completedAt" DATETIME,
-    "approvedBy" TEXT,
-    "approvedAt" DATETIME,
-    "returnedAt" DATETIME,
-    "cost" REAL,
-    "currency" TEXT NOT NULL DEFAULT 'USD',
-    "kilometersAtService" INTEGER,
-    "conditionBefore" TEXT,
-    "conditionAfter" TEXT,
-    "technicianNotes" TEXT,
-    "internalNotes" TEXT,
-    "createdBy" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ServiceRecord_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceProviderId_fkey" FOREIGN KEY ("serviceProviderId") REFERENCES "ServiceProvider" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceTypeConfigId_fkey" FOREIGN KEY ("serviceTypeConfigId") REFERENCES "ServiceTypeConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_authorizedBy_fkey" FOREIGN KEY ("authorizedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_approvedBy_fkey" FOREIGN KEY ("approvedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "ServiceStatusHistory" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "serviceRecordId" TEXT NOT NULL,
-    "fromStatus" TEXT,
-    "toStatus" TEXT NOT NULL,
-    "changedBy" TEXT NOT NULL,
-    "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "ServiceStatusHistory_serviceRecordId_fkey" FOREIGN KEY ("serviceRecordId") REFERENCES "ServiceRecord" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceStatusHistory_changedBy_fkey" FOREIGN KEY ("changedBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "Photo" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "serviceRecordId" TEXT NOT NULL,
-    "url" TEXT NOT NULL,
-    "filename" TEXT NOT NULL,
-    "mimeType" TEXT NOT NULL,
-    "size" INTEGER NOT NULL,
-    "type" TEXT NOT NULL,
-    "caption" TEXT,
-    "uploadedBy" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Photo_serviceRecordId_fkey" FOREIGN KEY ("serviceRecordId") REFERENCES "ServiceRecord" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Photo_uploadedBy_fkey" FOREIGN KEY ("uploadedBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "AuditLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT,
-    "action" TEXT NOT NULL,
-    "entityType" TEXT NOT NULL,
-    "entityId" TEXT NOT NULL,
-    "details" TEXT,
-    "ipAddress" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-);
-
--- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Vehicle_vin_key" ON "Vehicle"("vin");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Vehicle_licensePlate_key" ON "Vehicle"("licensePlate");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Driver_employeeId_key" ON "Driver"("employeeId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Driver_email_key" ON "Driver"("email");
-
--- CreateIndex
-CREATE INDEX "Assignment_vehicleId_idx" ON "Assignment"("vehicleId");
-
--- CreateIndex
-CREATE INDEX "Assignment_driverId_idx" ON "Assignment"("driverId");
-
--- CreateIndex
-CREATE INDEX "Assignment_createdBy_idx" ON "Assignment"("createdBy");
-
--- CreateIndex
-CREATE INDEX "ServiceIntervalConfig_serviceTypeId_idx" ON "ServiceIntervalConfig"("serviceTypeId");
-
--- CreateIndex
-CREATE INDEX "VehicleServiceInterval_vehicleId_idx" ON "VehicleServiceInterval"("vehicleId");
-
--- CreateIndex
-CREATE INDEX "VehicleServiceInterval_serviceIntervalConfigId_idx" ON "VehicleServiceInterval"("serviceIntervalConfigId");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_vehicleId_idx" ON "ServiceRecord"("vehicleId");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_serviceProviderId_idx" ON "ServiceRecord"("serviceProviderId");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_serviceTypeConfigId_idx" ON "ServiceRecord"("serviceTypeConfigId");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_authorizedBy_idx" ON "ServiceRecord"("authorizedBy");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_approvedBy_idx" ON "ServiceRecord"("approvedBy");
-
--- CreateIndex
-CREATE INDEX "ServiceRecord_createdBy_idx" ON "ServiceRecord"("createdBy");
-
--- CreateIndex
-CREATE INDEX "ServiceStatusHistory_serviceRecordId_idx" ON "ServiceStatusHistory"("serviceRecordId");
-
--- CreateIndex
-CREATE INDEX "ServiceStatusHistory_changedBy_idx" ON "ServiceStatusHistory"("changedBy");
-
--- CreateIndex
-CREATE INDEX "Photo_serviceRecordId_idx" ON "Photo"("serviceRecordId");
-
--- CreateIndex
-CREATE INDEX "Photo_uploadedBy_idx" ON "Photo"("uploadedBy");
-
--- CreateIndex
-CREATE INDEX "AuditLog_userId_idx" ON "AuditLog"("userId");
-
--- CreateIndex
-CREATE INDEX "AuditLog_entityType_entityId_idx" ON "AuditLog"("entityType", "entityId");
-
-
-================================================================================
-FILE: ./server/prisma/migrations/20260217163638_financials/migration.sql
-================================================================================
-/*
-  Warnings:
-
-  - You are about to drop the column `cost` on the `ServiceRecord` table. All the data in the column will be lost.
-
-*/
--- AlterTable
-ALTER TABLE "Vehicle" ADD COLUMN "coverageType" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "currentBookValue" REAL;
-ALTER TABLE "Vehicle" ADD COLUMN "fleetNumber" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "insurancePolicyNo" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "insuranceProvider" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "leaseAgreementNo" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "leaseCompany" TEXT;
-ALTER TABLE "Vehicle" ADD COLUMN "leaseEndDate" DATETIME;
-ALTER TABLE "Vehicle" ADD COLUMN "leaseStartDate" DATETIME;
-ALTER TABLE "Vehicle" ADD COLUMN "monthlyLeaseCost" REAL;
-ALTER TABLE "Vehicle" ADD COLUMN "policyExpiryDate" DATETIME;
-ALTER TABLE "Vehicle" ADD COLUMN "policyStartDate" DATETIME;
-ALTER TABLE "Vehicle" ADD COLUMN "premiumAmount" REAL;
-ALTER TABLE "Vehicle" ADD COLUMN "registrationExpiry" DATETIME;
-ALTER TABLE "Vehicle" ADD COLUMN "warrantyExpiry" DATETIME;
-
--- RedefineTables
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_ServiceRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "serviceProviderId" TEXT,
-    "serviceTypeConfigId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "description" TEXT NOT NULL,
-    "scheduledDate" DATETIME,
-    "authorizedBy" TEXT,
-    "authorizedAt" DATETIME,
-    "startedAt" DATETIME,
-    "completedAt" DATETIME,
-    "approvedBy" TEXT,
-    "approvedAt" DATETIME,
-    "returnedAt" DATETIME,
-    "driverId" TEXT,
-    "laborCost" REAL,
-    "partsCost" REAL,
-    "additionalCharges" REAL,
-    "vatAmount" REAL,
-    "totalCostExclVat" REAL,
-    "totalCostInclVat" REAL,
-    "currency" TEXT NOT NULL DEFAULT 'USD',
-    "invoiceNumber" TEXT,
-    "invoiceDate" DATETIME,
-    "paymentMethod" TEXT,
-    "isWarrantyClaim" BOOLEAN NOT NULL DEFAULT false,
-    "kilometersAtService" INTEGER,
-    "conditionBefore" TEXT,
-    "conditionAfter" TEXT,
-    "technicianNotes" TEXT,
-    "internalNotes" TEXT,
-    "createdBy" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ServiceRecord_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceProviderId_fkey" FOREIGN KEY ("serviceProviderId") REFERENCES "ServiceProvider" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceTypeConfigId_fkey" FOREIGN KEY ("serviceTypeConfigId") REFERENCES "ServiceTypeConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_authorizedBy_fkey" FOREIGN KEY ("authorizedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_approvedBy_fkey" FOREIGN KEY ("approvedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-INSERT INTO "new_ServiceRecord" ("approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "id", "internalNotes", "kilometersAtService", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "updatedAt", "vehicleId") SELECT "approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "id", "internalNotes", "kilometersAtService", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "updatedAt", "vehicleId" FROM "ServiceRecord";
-DROP TABLE "ServiceRecord";
-ALTER TABLE "new_ServiceRecord" RENAME TO "ServiceRecord";
-CREATE INDEX "ServiceRecord_vehicleId_idx" ON "ServiceRecord"("vehicleId");
-CREATE INDEX "ServiceRecord_serviceProviderId_idx" ON "ServiceRecord"("serviceProviderId");
-CREATE INDEX "ServiceRecord_driverId_idx" ON "ServiceRecord"("driverId");
-CREATE INDEX "ServiceRecord_serviceTypeConfigId_idx" ON "ServiceRecord"("serviceTypeConfigId");
-CREATE INDEX "ServiceRecord_authorizedBy_idx" ON "ServiceRecord"("authorizedBy");
-CREATE INDEX "ServiceRecord_approvedBy_idx" ON "ServiceRecord"("approvedBy");
-CREATE INDEX "ServiceRecord_createdBy_idx" ON "ServiceRecord"("createdBy");
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
-
-
-================================================================================
-FILE: ./server/prisma/migrations/20260218172806_add_cartrack_integration/migration.sql
-================================================================================
--- CreateTable
-CREATE TABLE "CartrackConfig" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "apiBaseUrl" TEXT NOT NULL DEFAULT 'https://fleetapi-za.cartrack.com/rest/',
-    "apiUsername" TEXT NOT NULL DEFAULT '',
-    "apiPasswordEncrypted" TEXT NOT NULL DEFAULT '',
-    "isEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "syncIntervalMinutes" INTEGER NOT NULL DEFAULT 15,
-    "vehicleSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "tripSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "driverSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "alertSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "fuelSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
-    "lastHealthCheck" DATETIME,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "CartrackFleetVehicle" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "licensePlate" TEXT NOT NULL,
-    "cartrackVehicleId" TEXT,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "lastSyncedAt" DATETIME,
-    "syncStatus" TEXT NOT NULL DEFAULT 'PENDING',
-    "syncErrorMessage" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackFleetVehicle_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackVehicleData" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackFleetVehicleId" TEXT NOT NULL,
-    "cartrackVehicleId" TEXT NOT NULL,
-    "registrationNumber" TEXT,
-    "make" TEXT,
-    "model" TEXT,
-    "year" TEXT,
-    "odometer" REAL,
-    "lastLatitude" REAL,
-    "lastLongitude" REAL,
-    "lastSpeed" REAL,
-    "lastIgnitionStatus" TEXT,
-    "lastEventTime" DATETIME,
-    "fuelLevel" REAL,
-    "rawVehicleJson" TEXT NOT NULL,
-    "rawStatusJson" TEXT,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackVehicleData_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackTrip" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackFleetVehicleId" TEXT NOT NULL,
-    "cartrackTripId" TEXT NOT NULL,
-    "startTime" DATETIME,
-    "endTime" DATETIME,
-    "startLatitude" REAL,
-    "startLongitude" REAL,
-    "endLatitude" REAL,
-    "endLongitude" REAL,
-    "startAddress" TEXT,
-    "endAddress" TEXT,
-    "distanceKm" REAL,
-    "durationMinutes" REAL,
-    "maxSpeed" REAL,
-    "averageSpeed" REAL,
-    "idlingDurationMinutes" REAL,
-    "fuelUsedLitres" REAL,
-    "driverName" TEXT,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackTrip_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackDriver" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackDriverId" TEXT NOT NULL,
-    "firstName" TEXT,
-    "lastName" TEXT,
-    "employeeNumber" TEXT,
-    "licenseNumber" TEXT,
-    "phone" TEXT,
-    "email" TEXT,
-    "status" TEXT,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "CartrackDriverLinkage" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackVehicleId" TEXT NOT NULL,
-    "cartrackDriverId" TEXT NOT NULL,
-    "startDate" DATETIME,
-    "endDate" DATETIME,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackDriverLinkage_cartrackDriverId_fkey" FOREIGN KEY ("cartrackDriverId") REFERENCES "CartrackDriver" ("cartrackDriverId") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackAlert" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackFleetVehicleId" TEXT NOT NULL,
-    "cartrackAlertId" TEXT NOT NULL,
-    "alertType" TEXT,
-    "severity" TEXT,
-    "message" TEXT,
-    "latitude" REAL,
-    "longitude" REAL,
-    "eventTime" DATETIME,
-    "isAcknowledged" BOOLEAN NOT NULL DEFAULT false,
-    "acknowledgedBy" TEXT,
-    "acknowledgedAt" DATETIME,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackAlert_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackFuelRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackFleetVehicleId" TEXT NOT NULL,
-    "cartrackFuelId" TEXT NOT NULL,
-    "eventTime" DATETIME,
-    "litres" REAL,
-    "costPerLitre" REAL,
-    "totalCost" REAL,
-    "odometer" REAL,
-    "location" TEXT,
-    "fuelType" TEXT,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "CartrackFuelRecord_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "CartrackVehicleGroup" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "cartrackGroupId" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "vehicleCount" INTEGER NOT NULL DEFAULT 0,
-    "rawJson" TEXT NOT NULL,
-    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-
--- CreateTable
-CREATE TABLE "CartrackSyncLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "syncType" TEXT NOT NULL,
-    "status" TEXT NOT NULL,
-    "triggeredBy" TEXT NOT NULL,
-    "triggeredByUserId" TEXT,
-    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "completedAt" DATETIME,
-    "recordsFetched" INTEGER NOT NULL DEFAULT 0,
-    "recordsCreated" INTEGER NOT NULL DEFAULT 0,
-    "recordsUpdated" INTEGER NOT NULL DEFAULT 0,
-    "recordsErrored" INTEGER NOT NULL DEFAULT 0,
-    "errorMessage" TEXT,
-    "errorDetails" TEXT,
-    "durationMs" INTEGER,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- RedefineTables
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_ServiceRecord" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vehicleId" TEXT NOT NULL,
-    "serviceProviderId" TEXT,
-    "serviceTypeConfigId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'DRAFT',
-    "description" TEXT NOT NULL,
-    "scheduledDate" DATETIME,
-    "authorizedBy" TEXT,
-    "authorizedAt" DATETIME,
-    "startedAt" DATETIME,
-    "completedAt" DATETIME,
-    "approvedBy" TEXT,
-    "approvedAt" DATETIME,
-    "returnedAt" DATETIME,
-    "driverId" TEXT,
-    "laborCost" REAL,
-    "partsCost" REAL,
-    "additionalCharges" REAL,
-    "vatAmount" REAL,
-    "totalCostExclVat" REAL,
-    "totalCostInclVat" REAL,
-    "currency" TEXT NOT NULL DEFAULT 'ZAR',
-    "invoiceNumber" TEXT,
-    "invoiceDate" DATETIME,
-    "paymentMethod" TEXT,
-    "isWarrantyClaim" BOOLEAN NOT NULL DEFAULT false,
-    "kilometersAtService" INTEGER,
-    "conditionBefore" TEXT,
-    "conditionAfter" TEXT,
-    "technicianNotes" TEXT,
-    "internalNotes" TEXT,
-    "createdBy" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "ServiceRecord_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceProviderId_fkey" FOREIGN KEY ("serviceProviderId") REFERENCES "ServiceProvider" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_serviceTypeConfigId_fkey" FOREIGN KEY ("serviceTypeConfigId") REFERENCES "ServiceTypeConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_authorizedBy_fkey" FOREIGN KEY ("authorizedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_approvedBy_fkey" FOREIGN KEY ("approvedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT "ServiceRecord_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-INSERT INTO "new_ServiceRecord" ("additionalCharges", "approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "driverId", "id", "internalNotes", "invoiceDate", "invoiceNumber", "isWarrantyClaim", "kilometersAtService", "laborCost", "partsCost", "paymentMethod", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "totalCostExclVat", "totalCostInclVat", "updatedAt", "vatAmount", "vehicleId") SELECT "additionalCharges", "approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "driverId", "id", "internalNotes", "invoiceDate", "invoiceNumber", "isWarrantyClaim", "kilometersAtService", "laborCost", "partsCost", "paymentMethod", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "totalCostExclVat", "totalCostInclVat", "updatedAt", "vatAmount", "vehicleId" FROM "ServiceRecord";
-DROP TABLE "ServiceRecord";
-ALTER TABLE "new_ServiceRecord" RENAME TO "ServiceRecord";
-CREATE INDEX "ServiceRecord_vehicleId_idx" ON "ServiceRecord"("vehicleId");
-CREATE INDEX "ServiceRecord_serviceProviderId_idx" ON "ServiceRecord"("serviceProviderId");
-CREATE INDEX "ServiceRecord_driverId_idx" ON "ServiceRecord"("driverId");
-CREATE INDEX "ServiceRecord_serviceTypeConfigId_idx" ON "ServiceRecord"("serviceTypeConfigId");
-CREATE INDEX "ServiceRecord_authorizedBy_idx" ON "ServiceRecord"("authorizedBy");
-CREATE INDEX "ServiceRecord_approvedBy_idx" ON "ServiceRecord"("approvedBy");
-CREATE INDEX "ServiceRecord_createdBy_idx" ON "ServiceRecord"("createdBy");
-CREATE TABLE "new_Vehicle" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "vin" TEXT NOT NULL,
-    "licensePlate" TEXT NOT NULL,
-    "make" TEXT NOT NULL,
-    "model" TEXT NOT NULL,
-    "year" INTEGER NOT NULL,
-    "color" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-    "currentKilometers" INTEGER NOT NULL DEFAULT 0,
-    "fuelType" TEXT NOT NULL,
-    "purchaseDate" DATETIME,
-    "purchasePrice" REAL,
-    "currency" TEXT NOT NULL DEFAULT 'ZAR',
-    "fleetNumber" TEXT,
-    "leaseCompany" TEXT,
-    "leaseAgreementNo" TEXT,
-    "leaseStartDate" DATETIME,
-    "leaseEndDate" DATETIME,
-    "monthlyLeaseCost" REAL,
-    "currentBookValue" REAL,
-    "insuranceProvider" TEXT,
-    "insurancePolicyNo" TEXT,
-    "coverageType" TEXT,
-    "policyStartDate" DATETIME,
-    "policyExpiryDate" DATETIME,
-    "premiumAmount" REAL,
-    "registrationExpiry" DATETIME,
-    "warrantyExpiry" DATETIME,
-    "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
-);
-INSERT INTO "new_Vehicle" ("color", "coverageType", "createdAt", "currency", "currentBookValue", "currentKilometers", "fleetNumber", "fuelType", "id", "insurancePolicyNo", "insuranceProvider", "leaseAgreementNo", "leaseCompany", "leaseEndDate", "leaseStartDate", "licensePlate", "make", "model", "monthlyLeaseCost", "notes", "policyExpiryDate", "policyStartDate", "premiumAmount", "purchaseDate", "purchasePrice", "registrationExpiry", "status", "updatedAt", "vin", "warrantyExpiry", "year") SELECT "color", "coverageType", "createdAt", "currency", "currentBookValue", "currentKilometers", "fleetNumber", "fuelType", "id", "insurancePolicyNo", "insuranceProvider", "leaseAgreementNo", "leaseCompany", "leaseEndDate", "leaseStartDate", "licensePlate", "make", "model", "monthlyLeaseCost", "notes", "policyExpiryDate", "policyStartDate", "premiumAmount", "purchaseDate", "purchasePrice", "registrationExpiry", "status", "updatedAt", "vin", "warrantyExpiry", "year" FROM "Vehicle";
-DROP TABLE "Vehicle";
-ALTER TABLE "new_Vehicle" RENAME TO "Vehicle";
-CREATE UNIQUE INDEX "Vehicle_vin_key" ON "Vehicle"("vin");
-CREATE UNIQUE INDEX "Vehicle_licensePlate_key" ON "Vehicle"("licensePlate");
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackFleetVehicle_vehicleId_key" ON "CartrackFleetVehicle"("vehicleId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackFleetVehicle_licensePlate_key" ON "CartrackFleetVehicle"("licensePlate");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackFleetVehicle_cartrackVehicleId_key" ON "CartrackFleetVehicle"("cartrackVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackFleetVehicle_vehicleId_idx" ON "CartrackFleetVehicle"("vehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackFleetVehicle_licensePlate_idx" ON "CartrackFleetVehicle"("licensePlate");
-
--- CreateIndex
-CREATE INDEX "CartrackFleetVehicle_cartrackVehicleId_idx" ON "CartrackFleetVehicle"("cartrackVehicleId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackVehicleData_cartrackFleetVehicleId_key" ON "CartrackVehicleData"("cartrackFleetVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackVehicleData_cartrackFleetVehicleId_idx" ON "CartrackVehicleData"("cartrackFleetVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackVehicleData_cartrackVehicleId_idx" ON "CartrackVehicleData"("cartrackVehicleId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackTrip_cartrackTripId_key" ON "CartrackTrip"("cartrackTripId");
-
--- CreateIndex
-CREATE INDEX "CartrackTrip_cartrackFleetVehicleId_idx" ON "CartrackTrip"("cartrackFleetVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackTrip_startTime_idx" ON "CartrackTrip"("startTime");
-
--- CreateIndex
-CREATE INDEX "CartrackTrip_endTime_idx" ON "CartrackTrip"("endTime");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackDriver_cartrackDriverId_key" ON "CartrackDriver"("cartrackDriverId");
-
--- CreateIndex
-CREATE INDEX "CartrackDriver_cartrackDriverId_idx" ON "CartrackDriver"("cartrackDriverId");
-
--- CreateIndex
-CREATE INDEX "CartrackDriver_employeeNumber_idx" ON "CartrackDriver"("employeeNumber");
-
--- CreateIndex
-CREATE INDEX "CartrackDriverLinkage_cartrackVehicleId_idx" ON "CartrackDriverLinkage"("cartrackVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackDriverLinkage_cartrackDriverId_idx" ON "CartrackDriverLinkage"("cartrackDriverId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackDriverLinkage_cartrackVehicleId_cartrackDriverId_key" ON "CartrackDriverLinkage"("cartrackVehicleId", "cartrackDriverId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackAlert_cartrackAlertId_key" ON "CartrackAlert"("cartrackAlertId");
-
--- CreateIndex
-CREATE INDEX "CartrackAlert_cartrackFleetVehicleId_idx" ON "CartrackAlert"("cartrackFleetVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackAlert_alertType_idx" ON "CartrackAlert"("alertType");
-
--- CreateIndex
-CREATE INDEX "CartrackAlert_eventTime_idx" ON "CartrackAlert"("eventTime");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackFuelRecord_cartrackFuelId_key" ON "CartrackFuelRecord"("cartrackFuelId");
-
--- CreateIndex
-CREATE INDEX "CartrackFuelRecord_cartrackFleetVehicleId_idx" ON "CartrackFuelRecord"("cartrackFleetVehicleId");
-
--- CreateIndex
-CREATE INDEX "CartrackFuelRecord_eventTime_idx" ON "CartrackFuelRecord"("eventTime");
-
--- CreateIndex
-CREATE UNIQUE INDEX "CartrackVehicleGroup_cartrackGroupId_key" ON "CartrackVehicleGroup"("cartrackGroupId");
-
--- CreateIndex
-CREATE INDEX "CartrackVehicleGroup_cartrackGroupId_idx" ON "CartrackVehicleGroup"("cartrackGroupId");
-
--- CreateIndex
-CREATE INDEX "CartrackSyncLog_syncType_idx" ON "CartrackSyncLog"("syncType");
-
--- CreateIndex
-CREATE INDEX "CartrackSyncLog_status_idx" ON "CartrackSyncLog"("status");
-
--- CreateIndex
-CREATE INDEX "CartrackSyncLog_startedAt_idx" ON "CartrackSyncLog"("startedAt");
-
-
-================================================================================
+==================================================
 FILE: ./server/prisma/schema.prisma
-================================================================================
+==================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -6480,9 +5796,9 @@ model CartrackSyncLog {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/prisma/seed.ts
-================================================================================
+==================================================
 import { PrismaClient } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 
@@ -7208,9 +6524,9 @@ main()
   });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/config/cartrack.ts
-================================================================================
+==================================================
 import { env } from './env';
 
 export const cartrackConfig = {
@@ -7221,9 +6537,9 @@ export const cartrackConfig = {
 };
 
 
-================================================================================
+==================================================
 FILE: ./server/src/config/database.ts
-================================================================================
+==================================================
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -7231,9 +6547,9 @@ const prisma = new PrismaClient();
 export default prisma;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/config/env.ts
-================================================================================
+==================================================
 export const env = {
   PORT: parseInt(process.env.PORT || '3001', 10),
   DATABASE_URL: process.env.DATABASE_URL!,
@@ -7251,9 +6567,9 @@ export const env = {
 };
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/assignment.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as assignmentService from '../services/assignment.service';
@@ -7312,9 +6628,9 @@ export async function endAssignment(req: Request, res: Response, next: NextFunct
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/auth.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as authService from '../services/auth.service';
@@ -7397,9 +6713,9 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/cartrack.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import { cartrackAdmin } from '../services/cartrack';
@@ -7561,9 +6877,9 @@ export async function getVehicleGroups(req: Request, res: Response, next: NextFu
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/dashboard.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import * as dashboardService from '../services/dashboard.service';
 
@@ -7608,9 +6924,9 @@ export async function getAlerts(req: Request, res: Response, next: NextFunction)
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/driver.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as driverService from '../services/driver.service';
@@ -7700,9 +7016,9 @@ export async function getDriverCosts(req: Request, res: Response, next: NextFunc
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/service.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as serviceService from '../services/service.service';
@@ -7813,9 +7129,9 @@ export async function deletePhoto(req: Request, res: Response, next: NextFunctio
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/uploads.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as serviceService from '../services/service.service';
@@ -7880,9 +7196,9 @@ export async function deletePhotoHandler(req: Request, res: Response, next: Next
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/user.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as userService from '../services/user.service';
@@ -7975,9 +7291,9 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/controllers/vehicle.controller.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as vehicleService from '../services/vehicle.service';
@@ -8080,9 +7396,9 @@ export async function updateKilometers(req: Request, res: Response, next: NextFu
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/index.ts
-================================================================================
+==================================================
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -8145,9 +7461,9 @@ app.listen(env.PORT, () => {
 export default app;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/lib/cartrack/cartrackApiClient.ts
-================================================================================
+==================================================
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { CartrackPaginatedResponse } from './cartrackApiTypes';
 
@@ -8294,9 +7610,9 @@ export class CartrackApiClient {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/lib/cartrack/cartrackApiTypes.ts
-================================================================================
+==================================================
 // Cartrack API pagination meta
 export interface CartrackPaginationMeta {
   current_page: number;
@@ -8427,17 +7743,17 @@ export interface CartrackVehicleGroupResponse {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/lib/cartrack/index.ts
-================================================================================
+==================================================
 export { CartrackApiClient } from './cartrackApiClient';
 export * from './cartrackApiTypes';
 export { startScheduler, stopScheduler, restartScheduler, getSchedulerStatus } from './syncScheduler';
 
 
-================================================================================
+==================================================
 FILE: ./server/src/lib/cartrack/syncScheduler.ts
-================================================================================
+==================================================
 import cron, { ScheduledTask } from 'node-cron';
 import prisma from '../../config/database';
 import { runSync, getSyncRunningState } from '../../services/cartrack/cartrackSync.service';
@@ -8518,9 +7834,9 @@ export function getSchedulerStatus(): {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/middleware/auth.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import { UnauthorizedError } from '../utils/errors';
@@ -8578,9 +7894,9 @@ export async function authenticate(
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/middleware/errorHandler.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
@@ -8649,9 +7965,9 @@ export function errorHandler(
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/middleware/rbac.ts
-================================================================================
+==================================================
 import { Response, NextFunction } from 'express';
 import { RequestWithUser } from './auth';
 import { ForbiddenError } from '../utils/errors';
@@ -8673,9 +7989,9 @@ export function authorize(...roles: string[]) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/middleware/upload.ts
-================================================================================
+==================================================
 import multer from 'multer';
 import { BadRequestError } from '../utils/errors';
 
@@ -8707,9 +8023,9 @@ export const uploadSinglePhoto = upload.single('photo');
 export const uploadPhotos = upload.array('photos', 10);
 
 
-================================================================================
+==================================================
 FILE: ./server/src/middleware/validate.ts
-================================================================================
+==================================================
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { BadRequestError } from '../utils/errors';
@@ -8744,9 +8060,9 @@ export function validate(schema: ZodSchema) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/assignment.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as assignmentController from '../controllers/assignment.controller';
 import { authenticate } from '../middleware/auth';
@@ -8765,9 +8081,9 @@ router.patch('/:id/end', authorize('ADMIN', 'FLEET_MANAGER'), assignmentControll
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/auth.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import { login, refresh, logout, getMe } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
@@ -8784,9 +8100,9 @@ router.get('/me', authenticate, getMe);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/cartrack.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { authorize } from '../middleware/rbac';
@@ -8832,9 +8148,9 @@ router.get('/vehicle-groups', cartrackController.getVehicleGroups);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/dashboard.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as dashboardController from '../controllers/dashboard.controller';
 import { authenticate } from '../middleware/auth';
@@ -8850,9 +8166,9 @@ router.get('/alerts', dashboardController.getAlerts);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/driver.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as driverController from '../controllers/driver.controller';
 import { authenticate } from '../middleware/auth';
@@ -8874,9 +8190,9 @@ router.delete('/:id', authorize('ADMIN'), driverController.deleteDriver);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/portal.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
@@ -8927,9 +8243,9 @@ router.post('/services/:id/complete', async (req: Request, res: Response, next: 
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/service.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as serviceController from '../controllers/service.controller';
 import { authenticate } from '../middleware/auth';
@@ -8950,9 +8266,9 @@ router.post('/:id/transition', validate(transitionServiceSchema), serviceControl
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/serviceIntervals.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as serviceController from '../controllers/service.controller';
 import { authenticate } from '../middleware/auth';
@@ -8972,9 +8288,9 @@ router.delete('/:id', authorize('ADMIN'), serviceController.deleteServiceInterva
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/serviceTypes.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as serviceController from '../controllers/service.controller';
 import { authenticate } from '../middleware/auth';
@@ -8994,9 +8310,9 @@ router.delete('/:id', authorize('ADMIN'), serviceController.deleteServiceType);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/uploads.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import { uploadPhoto, getPhotoFile, deletePhotoHandler } from '../controllers/uploads.controller';
 import { authenticate } from '../middleware/auth';
@@ -9011,9 +8327,9 @@ router.delete('/photos/:id', authenticate, deletePhotoHandler);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/user.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as userController from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth';
@@ -9035,9 +8351,9 @@ router.delete('/:id', userController.deleteUser);
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/routes/vehicle.routes.ts
-================================================================================
+==================================================
 import { Router } from 'express';
 import * as vehicleController from '../controllers/vehicle.controller';
 import { authenticate } from '../middleware/auth';
@@ -9060,9 +8376,9 @@ router.patch('/:id/kilometers', validate(updateKilometersSchema), vehicleControl
 export default router;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/assignment.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { createAuditLog } from '../utils/audit';
@@ -9146,9 +8462,9 @@ export async function endAssignment(id: string, userId: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/auth.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { UnauthorizedError } from '../utils/errors';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
@@ -9225,9 +8541,9 @@ export async function getMe(userId: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/alertSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackAlertNotificationResponse } from '../../lib/cartrack';
 
@@ -9308,9 +8624,9 @@ export async function syncAlerts(client: CartrackApiClient, sinceDate?: Date): P
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/cartrackAdmin.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { encrypt, decrypt } from '../../utils/encryption';
 import { cartrackConfig } from '../../config/cartrack';
@@ -9585,9 +8901,9 @@ export async function getVehicleGroups(params: { page?: string; limit?: string }
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/cartrackSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient } from '../../lib/cartrack';
 import { decrypt } from '../../utils/encryption';
@@ -9769,9 +9085,9 @@ async function runSyncInternal(
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/driverSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackDriverResponse, CartrackDriverLinkageResponse } from '../../lib/cartrack';
 
@@ -9883,9 +9199,9 @@ export async function syncDriverLinkages(client: CartrackApiClient): Promise<Syn
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/fuelSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackFuelResponse } from '../../lib/cartrack';
 
@@ -9969,16 +9285,16 @@ export async function syncFuel(client: CartrackApiClient, sinceDate?: Date): Pro
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/index.ts
-================================================================================
+==================================================
 export * from './cartrackSync.service';
 export * as cartrackAdmin from './cartrackAdmin.service';
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/tripSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackTripResponse } from '../../lib/cartrack';
 
@@ -10067,9 +9383,9 @@ export async function syncTrips(client: CartrackApiClient, sinceDate?: Date): Pr
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/vehicleGroupSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackVehicleGroupResponse } from '../../lib/cartrack';
 
@@ -10124,9 +9440,9 @@ export async function syncVehicleGroups(client: CartrackApiClient): Promise<Sync
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/cartrack/vehicleSync.service.ts
-================================================================================
+==================================================
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackVehicleResponse, CartrackVehicleStatusResponse, CartrackPaginatedResponse } from '../../lib/cartrack';
 
@@ -10258,9 +9574,9 @@ export async function syncVehicles(client: CartrackApiClient): Promise<SyncResul
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/dashboard.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 
 export async function getMetrics() {
@@ -10387,9 +9703,9 @@ export async function getAlerts() {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/driver.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { createAuditLog } from '../utils/audit';
@@ -10477,9 +9793,9 @@ export async function deleteDriver(id: string, userId: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/service.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { parsePagination, paginatedResponse } from '../utils/pagination';
 import { createAuditLog } from '../utils/audit';
@@ -10567,9 +9883,17 @@ export async function deleteServiceInterval(id: string, userId: string) {
 export async function listServiceRecords(query: any) {
   const { page, limit, skip } = parsePagination(query);
   const where: any = {};
-  if (query.status) where.status = query.status;
+  if (query.status) {
+    const statuses = query.status.split(',').map((s: string) => s.trim());
+    where.status = statuses.length === 1 ? statuses[0] : { in: statuses };
+  }
   if (query.vehicleId) where.vehicleId = query.vehicleId;
   if (query.serviceProviderId) where.serviceProviderId = query.serviceProviderId;
+  if (query.dateFrom || query.dateTo) {
+    where.createdAt = {};
+    if (query.dateFrom) where.createdAt.gte = new Date(query.dateFrom);
+    if (query.dateTo) where.createdAt.lte = new Date(query.dateTo + 'T23:59:59.999Z');
+  }
 
   const [data, total] = await Promise.all([
     prisma.serviceRecord.findMany({
@@ -10844,9 +10168,9 @@ export async function getDriverCosts(driverId: string, period: 'weekly' | 'month
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/user.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError, UnauthorizedError } from '../utils/errors';
 import { hashPassword, comparePassword } from '../utils/password';
@@ -10939,9 +10263,9 @@ export async function changePassword(userId: string, currentPassword: string, ne
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/services/vehicle.service.ts
-================================================================================
+==================================================
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError } from '../utils/errors';
 import { createAuditLog } from '../utils/audit';
@@ -11138,9 +10462,9 @@ export async function getVehicleCosts(vehicleId: string) {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/audit.ts
-================================================================================
+==================================================
 import { PrismaClient } from '@prisma/client';
 
 export async function createAuditLog(
@@ -11165,9 +10489,9 @@ export async function createAuditLog(
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/encryption.ts
-================================================================================
+==================================================
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-cbc';
@@ -11196,9 +10520,9 @@ export function decrypt(encryptedText: string, key: string): string {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/errors.ts
-================================================================================
+==================================================
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
@@ -11237,9 +10561,9 @@ export class ForbiddenError extends AppError {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/fileStorage.ts
-================================================================================
+==================================================
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -11277,9 +10601,9 @@ export function getFilePath(filename: string): string {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/jwt.ts
-================================================================================
+==================================================
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
@@ -11300,9 +10624,9 @@ export function verifyRefreshToken(token: string): any {
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/pagination.ts
-================================================================================
+==================================================
 export interface PaginationParams {
   page: number;
   limit: number;
@@ -11328,9 +10652,9 @@ export function paginatedResponse<T>(data: T[], total: number, pagination: Pagin
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/utils/password.ts
-================================================================================
+==================================================
 import bcrypt from 'bcryptjs';
 
 export async function hashPassword(password: string): Promise<string> {
@@ -11342,9 +10666,9 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/assignment.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 export const createAssignmentSchema = z.object({
@@ -11355,9 +10679,9 @@ export const createAssignmentSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/auth.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 export const loginSchema = z.object({
@@ -11373,9 +10697,9 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/cartrack.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 export const updateCartrackConfigSchema = z.object({
@@ -11408,9 +10732,9 @@ export const triggerSyncSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/driver.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 const DriverStatus = z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']);
@@ -11439,9 +10763,9 @@ export const updateDriverSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/service.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 export const createServiceTypeSchema = z.object({
@@ -11517,9 +10841,9 @@ export const transitionServiceSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/user.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 const UserRole = z.enum(['ADMIN', 'FLEET_MANAGER', 'SERVICE_COMPANY']);
@@ -11546,9 +10870,9 @@ export const changePasswordSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/src/validators/vehicle.validator.ts
-================================================================================
+==================================================
 import { z } from 'zod';
 
 const VehicleStatus = z.enum(['ACTIVE', 'IN_SERVICE', 'OUT_OF_SERVICE', 'RETIRED']);
@@ -11619,9 +10943,9 @@ export const updateKilometersSchema = z.object({
 });
 
 
-================================================================================
+==================================================
 FILE: ./server/tsconfig.json
-================================================================================
+==================================================
 {
   "compilerOptions": {
     "target": "ES2022",
