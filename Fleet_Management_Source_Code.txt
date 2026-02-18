@@ -1,6 +1,6 @@
 ==================================================
 FLEET MANAGEMENT - COMPLETE SOURCE CODE
-Generated: 18 Feb 2026 20:29:43
+Generated: 18 Feb 2026 20:49:14
 ==================================================
 
 ==================================================
@@ -186,6 +186,35 @@ export const refreshToken = async (): Promise<LoginResponse> => {
   });
   return data.data;
 };
+
+
+==================================================
+FILE: ./client/src/api/bulkUpload.ts
+==================================================
+import client from './client';
+
+export interface BulkUploadResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: { row: number; field?: string; message: string }[];
+}
+
+async function uploadFile(endpoint: string, file: File): Promise<BulkUploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await client.post(endpoint, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.data;
+}
+
+export const uploadVehicles = (file: File) => uploadFile('/bulk-upload/vehicles', file);
+export const uploadDrivers = (file: File) => uploadFile('/bulk-upload/drivers', file);
+export const uploadServices = (file: File) => uploadFile('/bulk-upload/services', file);
+export const uploadAssignments = (file: File) => uploadFile('/bulk-upload/assignments', file);
+
+export const getTemplateUrl = (type: string) => `/api/v1/bulk-upload/templates/${type}`;
 
 
 ==================================================
@@ -874,6 +903,7 @@ import ServiceTypesPage from './pages/ServiceTypesPage';
 import ServiceIntervalsPage from './pages/ServiceIntervalsPage';
 import ServiceProviderPortalPage from './pages/ServiceProviderPortalPage';
 import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
+import BulkUploadPage from './pages/BulkUploadPage';
 
 export default function App() {
   return (
@@ -918,6 +948,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <CartrackIntegrationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="bulk-upload"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'FLEET_MANAGER']}>
+                <BulkUploadPage />
               </ProtectedRoute>
             }
           />
@@ -1039,6 +1077,7 @@ import {
   HiCog6Tooth,
   HiBuildingOffice2,
   HiSignal,
+  HiArrowUpTray,
 } from 'react-icons/hi2';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -1076,6 +1115,12 @@ export default function Sidebar() {
         <NavLink to="/services" className={navLinkClass}>
           <HiWrenchScrewdriver className="text-lg" /> Services
         </NavLink>
+
+        {(user?.role === 'ADMIN' || user?.role === 'FLEET_MANAGER') && (
+          <NavLink to="/bulk-upload" className={navLinkClass}>
+            <HiArrowUpTray className="text-lg" /> Bulk Upload
+          </NavLink>
+        )}
 
         {user?.role === 'ADMIN' && (
           <>
@@ -1991,6 +2036,45 @@ export const useEndAssignment = () => {
 
 
 ==================================================
+FILE: ./client/src/hooks/useBulkUpload.ts
+==================================================
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { uploadVehicles, uploadDrivers, uploadServices, uploadAssignments } from '../api/bulkUpload';
+
+export const useUploadVehicles = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: uploadVehicles,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vehicles'] }),
+  });
+};
+
+export const useUploadDrivers = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: uploadDrivers,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['drivers'] }),
+  });
+};
+
+export const useUploadServices = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: uploadServices,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['services'] }),
+  });
+};
+
+export const useUploadAssignments = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: uploadAssignments,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['assignments'] }),
+  });
+};
+
+
+==================================================
 FILE: ./client/src/hooks/useCartrack.ts
 ==================================================
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -2665,6 +2749,277 @@ export default function AssignmentListPage() {
 
       <ConfirmDialog isOpen={!!endId} onClose={() => setEndId(null)} onConfirm={handleEnd}
         title="End Assignment" message="Are you sure you want to end this assignment?" variant="danger" />
+    </div>
+  );
+}
+
+
+==================================================
+FILE: ./client/src/pages/BulkUploadPage.tsx
+==================================================
+import { useState, useRef } from 'react';
+import { Card, Badge, Button, LoadingSpinner } from '../components/ui';
+import {
+  HiArrowUpTray,
+  HiArrowDownTray,
+  HiCheckCircle,
+  HiXCircle,
+  HiExclamationTriangle,
+} from 'react-icons/hi2';
+import { useUploadVehicles, useUploadDrivers, useUploadServices, useUploadAssignments } from '../hooks/useBulkUpload';
+import { getTemplateUrl, BulkUploadResult } from '../api/bulkUpload';
+import toast from 'react-hot-toast';
+
+const tabs = [
+  { key: 'vehicles', label: 'Vehicles' },
+  { key: 'drivers', label: 'Drivers' },
+  { key: 'services', label: 'Services' },
+  { key: 'assignments', label: 'Assignments' },
+] as const;
+
+type TabKey = (typeof tabs)[number]['key'];
+
+const columnInfo: Record<TabKey, { required: string[]; optional: string[] }> = {
+  vehicles: {
+    required: ['vin', 'licensePlate', 'make', 'model', 'year', 'color', 'fuelType'],
+    optional: ['currentKilometers', 'purchaseDate', 'purchasePrice', 'currency', 'notes', 'fleetNumber', 'leaseCompany', 'leaseAgreementNo', 'monthlyLeaseCost', 'currentBookValue', 'insuranceProvider', 'insurancePolicyNo', 'premiumAmount'],
+  },
+  drivers: {
+    required: ['employeeId', 'firstName', 'lastName', 'email', 'licenseNumber', 'licenseExpiry'],
+    optional: ['phone', 'notes'],
+  },
+  services: {
+    required: ['licensePlate', 'serviceType', 'description'],
+    optional: ['scheduledDate', 'laborCost', 'partsCost', 'vatAmount', 'totalCostExclVat', 'totalCostInclVat', 'invoiceNumber', 'currency'],
+  },
+  assignments: {
+    required: ['licensePlate', 'employeeId', 'startDate'],
+    optional: ['notes'],
+  },
+};
+
+export default function BulkUploadPage() {
+  const [activeTab, setActiveTab] = useState<TabKey>('vehicles');
+  const [results, setResults] = useState<Record<string, BulkUploadResult | null>>({});
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const vehiclesMutation = useUploadVehicles();
+  const driversMutation = useUploadDrivers();
+  const servicesMutation = useUploadServices();
+  const assignmentsMutation = useUploadAssignments();
+
+  const mutations: Record<TabKey, typeof vehiclesMutation> = {
+    vehicles: vehiclesMutation,
+    drivers: driversMutation,
+    services: servicesMutation,
+    assignments: assignmentsMutation,
+  };
+
+  const currentMutation = mutations[activeTab];
+  const currentResult = results[activeTab] || null;
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await currentMutation.mutateAsync(file);
+      setResults((prev) => ({ ...prev, [activeTab]: result }));
+      if (result.failed === 0) {
+        toast.success(`All ${result.success} ${activeTab} imported successfully`);
+      } else {
+        toast.error(`${result.failed} of ${result.total} rows failed`);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Upload failed');
+    }
+
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleDownloadTemplate = () => {
+    const token = localStorage.getItem('accessToken');
+    const url = getTemplateUrl(activeTab);
+    const link = document.createElement('a');
+    // Use fetch to include auth header
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.blob())
+      .then((blob) => {
+        link.href = URL.createObjectURL(blob);
+        link.download = `${activeTab}-template.xlsx`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      })
+      .catch(() => toast.error('Failed to download template'));
+  };
+
+  const info = columnInfo[activeTab];
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">Bulk Upload</h1>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <div className="flex gap-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.key
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Upload Area */}
+        <div className="lg:col-span-2 space-y-4">
+          <Card className="!p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Upload {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </h2>
+                <Button variant="secondary" onClick={handleDownloadTemplate}>
+                  <HiArrowDownTray className="mr-1" /> Download Template
+                </Button>
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <HiArrowUpTray className="mx-auto text-4xl text-gray-400 mb-3" />
+                <p className="text-sm text-gray-600 mb-3">
+                  Upload an Excel file (.xlsx) with your {activeTab} data
+                </p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleUpload}
+                  className="hidden"
+                  id="bulk-upload"
+                />
+                <Button
+                  onClick={() => fileRef.current?.click()}
+                  isLoading={currentMutation.isPending}
+                >
+                  <HiArrowUpTray className="mr-1" /> Select File
+                </Button>
+              </div>
+
+              {currentMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <LoadingSpinner size="sm" /> Processing upload...
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Results */}
+          {currentResult && (
+            <Card className="!p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Results</h3>
+
+              <div className="flex gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Total:</span>
+                  <span className="font-bold">{currentResult.total}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <HiCheckCircle className="text-green-500" />
+                  <span className="text-sm text-gray-500">Success:</span>
+                  <span className="font-bold text-green-600">{currentResult.success}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <HiXCircle className="text-red-500" />
+                  <span className="text-sm text-gray-500">Failed:</span>
+                  <span className="font-bold text-red-600">{currentResult.failed}</span>
+                </div>
+              </div>
+
+              {currentResult.success > 0 && currentResult.failed === 0 && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
+                  <HiCheckCircle className="text-lg" />
+                  All rows imported successfully!
+                </div>
+              )}
+
+              {currentResult.errors.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
+                    <HiExclamationTriangle /> {currentResult.errors.length} error(s) found
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-gray-600 uppercase text-xs sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Row</th>
+                          <th className="px-3 py-2 text-left">Field</th>
+                          <th className="px-3 py-2 text-left">Error</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {currentResult.errors.map((err, idx) => (
+                          <tr key={idx} className="text-red-700 bg-red-50">
+                            <td className="px-3 py-2 font-mono">{err.row}</td>
+                            <td className="px-3 py-2">{err.field || '-'}</td>
+                            <td className="px-3 py-2">{err.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+
+        {/* Column Reference */}
+        <div>
+          <Card className="!p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Column Reference</h3>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Required Columns</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {info.required.map((col) => (
+                    <Badge key={col} color="red">{col}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Optional Columns</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {info.optional.map((col) => (
+                    <Badge key={col} color="gray">{col}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {(activeTab === 'services' || activeTab === 'assignments') && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                <p className="font-medium mb-1">Lookup Columns</p>
+                {activeTab === 'services' && (
+                  <p><strong>licensePlate</strong> and <strong>serviceType</strong> are matched by name — use exact values from the system.</p>
+                )}
+                {activeTab === 'assignments' && (
+                  <p><strong>licensePlate</strong> and <strong>employeeId</strong> are matched by value — use exact values from the system.</p>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
@@ -5262,6 +5617,7 @@ FILE: ./server/package.json
     "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
     "uuid": "^10.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -6714,6 +7070,80 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
 
 
 ==================================================
+FILE: ./server/src/controllers/bulkUpload.controller.ts
+==================================================
+import { Request, Response, NextFunction } from 'express';
+import { RequestWithUser } from '../middleware/auth';
+import {
+  bulkUploadVehicles,
+  bulkUploadDrivers,
+  bulkUploadServices,
+  bulkUploadAssignments,
+  generateTemplate,
+} from '../services/bulkUpload.service';
+
+export async function uploadVehicles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const result = await bulkUploadVehicles(req.file.buffer, user.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadDrivers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const result = await bulkUploadDrivers(req.file.buffer, user.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadServices(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const result = await bulkUploadServices(req.file.buffer, user.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function uploadAssignments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const result = await bulkUploadAssignments(req.file.buffer, user.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function downloadTemplate(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { type } = req.params;
+    const validTypes = ['vehicles', 'drivers', 'services', 'assignments'];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ success: false, message: `Invalid template type. Must be one of: ${validTypes.join(', ')}` });
+    }
+    const buffer = generateTemplate(type);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=${type}-template.xlsx`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+}
+
+
+==================================================
 FILE: ./server/src/controllers/cartrack.controller.ts
 ==================================================
 import { Request, Response, NextFunction } from 'express';
@@ -7420,6 +7850,7 @@ import uploadRoutes from './routes/uploads.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import portalRoutes from './routes/portal.routes';
 import cartrackRoutes from './routes/cartrack.routes';
+import bulkUploadRoutes from './routes/bulkUpload.routes';
 import { startScheduler } from './lib/cartrack/syncScheduler';
 
 const app = express();
@@ -7446,6 +7877,7 @@ app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/portal', portalRoutes);
 app.use('/api/v1/cartrack', cartrackRoutes);
+app.use('/api/v1/bulk-upload', bulkUploadRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -8022,6 +8454,31 @@ const upload = multer({
 export const uploadSinglePhoto = upload.single('photo');
 export const uploadPhotos = upload.array('photos', 10);
 
+// Excel file upload
+const excelFilter = (
+  _req: Express.Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+) => {
+  const allowedMimeTypes = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+  ];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new BadRequestError('Only Excel files (.xlsx, .xls) are allowed'));
+  }
+};
+
+const excelUpload = multer({
+  storage,
+  fileFilter: excelFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+export const uploadExcel = excelUpload.single('file');
+
 
 ==================================================
 FILE: ./server/src/middleware/validate.ts
@@ -8096,6 +8553,29 @@ router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.get('/me', authenticate, getMe);
+
+export default router;
+
+
+==================================================
+FILE: ./server/src/routes/bulkUpload.routes.ts
+==================================================
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
+import { authorize } from '../middleware/rbac';
+import { uploadExcel } from '../middleware/upload';
+import * as bulkUploadController from '../controllers/bulkUpload.controller';
+
+const router = Router();
+
+router.use(authenticate);
+
+router.get('/templates/:type', bulkUploadController.downloadTemplate);
+
+router.post('/vehicles', authorize('ADMIN', 'FLEET_MANAGER'), uploadExcel, bulkUploadController.uploadVehicles);
+router.post('/drivers', authorize('ADMIN', 'FLEET_MANAGER'), uploadExcel, bulkUploadController.uploadDrivers);
+router.post('/services', authorize('ADMIN', 'FLEET_MANAGER'), uploadExcel, bulkUploadController.uploadServices);
+router.post('/assignments', authorize('ADMIN', 'FLEET_MANAGER'), uploadExcel, bulkUploadController.uploadAssignments);
 
 export default router;
 
@@ -8538,6 +9018,344 @@ export async function getMe(userId: string) {
 
   const { passwordHash, ...userWithoutPassword } = user;
   return userWithoutPassword;
+}
+
+
+==================================================
+FILE: ./server/src/services/bulkUpload.service.ts
+==================================================
+import * as XLSX from 'xlsx';
+import prisma from '../config/database';
+import { createVehicle } from './vehicle.service';
+import { createDriver } from './driver.service';
+import { createServiceRecord } from './service.service';
+import { createAssignment } from './assignment.service';
+import { createVehicleSchema } from '../validators/vehicle.validator';
+import { createDriverSchema } from '../validators/driver.validator';
+
+// ---- Types ----
+
+interface RowError {
+  row: number;
+  field?: string;
+  message: string;
+}
+
+interface BulkUploadResult {
+  total: number;
+  success: number;
+  failed: number;
+  errors: RowError[];
+}
+
+// ---- Helpers ----
+
+function parseExcelBuffer(buffer: Buffer): Record<string, any>[] {
+  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+}
+
+function toStringOrUndefined(val: any): string | undefined {
+  if (val === '' || val === null || val === undefined) return undefined;
+  return String(val);
+}
+
+function toNumberOrUndefined(val: any): number | undefined {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const n = Number(val);
+  return isNaN(n) ? undefined : n;
+}
+
+function toDateString(val: any): string | undefined {
+  if (!val || val === '') return undefined;
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  return String(val);
+}
+
+// ---- Vehicles ----
+
+export async function bulkUploadVehicles(buffer: Buffer, userId: string): Promise<BulkUploadResult> {
+  const rows = parseExcelBuffer(buffer);
+  const result: BulkUploadResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2; // Excel row (1-indexed + header)
+    const r = rows[i];
+    try {
+      const data = {
+        vin: String(r.vin || ''),
+        licensePlate: String(r.licensePlate || ''),
+        make: String(r.make || ''),
+        model: String(r.model || ''),
+        year: Number(r.year) || 0,
+        color: String(r.color || ''),
+        fuelType: String(r.fuelType || ''),
+        currentKilometers: toNumberOrUndefined(r.currentKilometers),
+        purchaseDate: toDateString(r.purchaseDate),
+        purchasePrice: toNumberOrUndefined(r.purchasePrice),
+        currency: toStringOrUndefined(r.currency),
+        notes: toStringOrUndefined(r.notes),
+        fleetNumber: toStringOrUndefined(r.fleetNumber),
+        leaseCompany: toStringOrUndefined(r.leaseCompany),
+        leaseAgreementNo: toStringOrUndefined(r.leaseAgreementNo),
+        monthlyLeaseCost: toNumberOrUndefined(r.monthlyLeaseCost),
+        currentBookValue: toNumberOrUndefined(r.currentBookValue),
+        insuranceProvider: toStringOrUndefined(r.insuranceProvider),
+        insurancePolicyNo: toStringOrUndefined(r.insurancePolicyNo),
+        premiumAmount: toNumberOrUndefined(r.premiumAmount),
+      };
+
+      const validation = createVehicleSchema.safeParse(data);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+        result.errors.push({ row: rowNum, message: msg });
+        result.failed++;
+        continue;
+      }
+
+      await createVehicle(validation.data, userId);
+      result.success++;
+    } catch (err: any) {
+      const msg = err.code === 'P2002'
+        ? `Duplicate value: ${err.meta?.target?.join(', ') || 'unique constraint'}`
+        : err.message || 'Unknown error';
+      result.errors.push({ row: rowNum, message: msg });
+      result.failed++;
+    }
+  }
+
+  return result;
+}
+
+// ---- Drivers ----
+
+export async function bulkUploadDrivers(buffer: Buffer, userId: string): Promise<BulkUploadResult> {
+  const rows = parseExcelBuffer(buffer);
+  const result: BulkUploadResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2;
+    const r = rows[i];
+    try {
+      const data = {
+        employeeId: String(r.employeeId || ''),
+        firstName: String(r.firstName || ''),
+        lastName: String(r.lastName || ''),
+        email: String(r.email || ''),
+        phone: toStringOrUndefined(r.phone),
+        licenseNumber: String(r.licenseNumber || ''),
+        licenseExpiry: toDateString(r.licenseExpiry) || '',
+        notes: toStringOrUndefined(r.notes),
+      };
+
+      const validation = createDriverSchema.safeParse(data);
+      if (!validation.success) {
+        const msg = validation.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join('; ');
+        result.errors.push({ row: rowNum, message: msg });
+        result.failed++;
+        continue;
+      }
+
+      await createDriver(validation.data, userId);
+      result.success++;
+    } catch (err: any) {
+      const msg = err.code === 'P2002'
+        ? `Duplicate value: ${err.meta?.target?.join(', ') || 'unique constraint'}`
+        : err.message || 'Unknown error';
+      result.errors.push({ row: rowNum, message: msg });
+      result.failed++;
+    }
+  }
+
+  return result;
+}
+
+// ---- Services ----
+
+export async function bulkUploadServices(buffer: Buffer, userId: string): Promise<BulkUploadResult> {
+  const rows = parseExcelBuffer(buffer);
+  const result: BulkUploadResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  // Pre-load lookup maps
+  const vehicles = await prisma.vehicle.findMany({ select: { id: true, licensePlate: true } });
+  const vehicleMap = new Map(vehicles.map((v) => [v.licensePlate.toUpperCase(), v.id]));
+
+  const serviceTypes = await prisma.serviceTypeConfig.findMany({ select: { id: true, name: true } });
+  const serviceTypeMap = new Map(serviceTypes.map((s) => [s.name.toUpperCase(), s.id]));
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2;
+    const r = rows[i];
+    try {
+      const plate = String(r.licensePlate || '').toUpperCase();
+      const typeName = String(r.serviceType || '').toUpperCase();
+
+      const vehicleId = vehicleMap.get(plate);
+      if (!vehicleId) {
+        result.errors.push({ row: rowNum, field: 'licensePlate', message: `Vehicle not found: ${r.licensePlate}` });
+        result.failed++;
+        continue;
+      }
+
+      const serviceTypeConfigId = serviceTypeMap.get(typeName);
+      if (!serviceTypeConfigId) {
+        result.errors.push({ row: rowNum, field: 'serviceType', message: `Service type not found: ${r.serviceType}` });
+        result.failed++;
+        continue;
+      }
+
+      const data: any = {
+        vehicleId,
+        serviceTypeConfigId,
+        description: String(r.description || ''),
+        scheduledDate: toDateString(r.scheduledDate),
+        laborCost: toNumberOrUndefined(r.laborCost),
+        partsCost: toNumberOrUndefined(r.partsCost),
+        additionalCharges: toNumberOrUndefined(r.additionalCharges),
+        vatAmount: toNumberOrUndefined(r.vatAmount),
+        totalCostExclVat: toNumberOrUndefined(r.totalCostExclVat),
+        totalCostInclVat: toNumberOrUndefined(r.totalCostInclVat),
+        invoiceNumber: toStringOrUndefined(r.invoiceNumber),
+        currency: toStringOrUndefined(r.currency),
+      };
+
+      if (!data.description) {
+        result.errors.push({ row: rowNum, field: 'description', message: 'Description is required' });
+        result.failed++;
+        continue;
+      }
+
+      await createServiceRecord(data, userId);
+      result.success++;
+    } catch (err: any) {
+      result.errors.push({ row: rowNum, message: err.message || 'Unknown error' });
+      result.failed++;
+    }
+  }
+
+  return result;
+}
+
+// ---- Assignments ----
+
+export async function bulkUploadAssignments(buffer: Buffer, userId: string): Promise<BulkUploadResult> {
+  const rows = parseExcelBuffer(buffer);
+  const result: BulkUploadResult = { total: rows.length, success: 0, failed: 0, errors: [] };
+
+  // Pre-load lookup maps
+  const vehicles = await prisma.vehicle.findMany({ select: { id: true, licensePlate: true } });
+  const vehicleMap = new Map(vehicles.map((v) => [v.licensePlate.toUpperCase(), v.id]));
+
+  const drivers = await prisma.driver.findMany({ select: { id: true, employeeId: true } });
+  const driverMap = new Map(drivers.map((d) => [d.employeeId.toUpperCase(), d.id]));
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNum = i + 2;
+    const r = rows[i];
+    try {
+      const plate = String(r.licensePlate || '').toUpperCase();
+      const empId = String(r.employeeId || '').toUpperCase();
+
+      const vehicleId = vehicleMap.get(plate);
+      if (!vehicleId) {
+        result.errors.push({ row: rowNum, field: 'licensePlate', message: `Vehicle not found: ${r.licensePlate}` });
+        result.failed++;
+        continue;
+      }
+
+      const driverId = driverMap.get(empId);
+      if (!driverId) {
+        result.errors.push({ row: rowNum, field: 'employeeId', message: `Driver not found: ${r.employeeId}` });
+        result.failed++;
+        continue;
+      }
+
+      const startDate = toDateString(r.startDate);
+      if (!startDate) {
+        result.errors.push({ row: rowNum, field: 'startDate', message: 'Start date is required' });
+        result.failed++;
+        continue;
+      }
+
+      await createAssignment(
+        { vehicleId, driverId, startDate, notes: toStringOrUndefined(r.notes) },
+        userId,
+      );
+      result.success++;
+    } catch (err: any) {
+      result.errors.push({ row: rowNum, message: err.message || 'Unknown error' });
+      result.failed++;
+    }
+  }
+
+  return result;
+}
+
+// ---- Template Generation ----
+
+const templates: Record<string, { headers: string[]; example: Record<string, any> }> = {
+  vehicles: {
+    headers: [
+      'vin', 'licensePlate', 'make', 'model', 'year', 'color', 'fuelType',
+      'currentKilometers', 'purchaseDate', 'purchasePrice', 'currency', 'notes',
+      'fleetNumber', 'leaseCompany', 'leaseAgreementNo', 'monthlyLeaseCost',
+      'currentBookValue', 'insuranceProvider', 'insurancePolicyNo', 'premiumAmount',
+    ],
+    example: {
+      vin: 'ABC123456789', licensePlate: 'CA 123-456', make: 'Toyota',
+      model: 'Hilux', year: 2024, color: 'White', fuelType: 'Diesel',
+      currentKilometers: 15000, purchaseDate: '2024-01-15', purchasePrice: 450000,
+      currency: 'ZAR', notes: '', fleetNumber: 'FL001', leaseCompany: '',
+      leaseAgreementNo: '', monthlyLeaseCost: '', currentBookValue: 400000,
+      insuranceProvider: '', insurancePolicyNo: '', premiumAmount: '',
+    },
+  },
+  drivers: {
+    headers: ['employeeId', 'firstName', 'lastName', 'email', 'phone', 'licenseNumber', 'licenseExpiry', 'notes'],
+    example: {
+      employeeId: 'EMP001', firstName: 'John', lastName: 'Doe',
+      email: 'john.doe@example.com', phone: '+27821234567',
+      licenseNumber: 'DL12345678', licenseExpiry: '2026-12-31', notes: '',
+    },
+  },
+  services: {
+    headers: [
+      'licensePlate', 'serviceType', 'description', 'scheduledDate',
+      'laborCost', 'partsCost', 'vatAmount', 'totalCostExclVat',
+      'totalCostInclVat', 'invoiceNumber', 'currency',
+    ],
+    example: {
+      licensePlate: 'CA 123-456', serviceType: 'Oil Change',
+      description: 'Regular oil change and filter replacement',
+      scheduledDate: '2026-03-01', laborCost: 500, partsCost: 350,
+      vatAmount: 127.5, totalCostExclVat: 850, totalCostInclVat: 977.5,
+      invoiceNumber: 'INV-001', currency: 'ZAR',
+    },
+  },
+  assignments: {
+    headers: ['licensePlate', 'employeeId', 'startDate', 'notes'],
+    example: {
+      licensePlate: 'CA 123-456', employeeId: 'EMP001',
+      startDate: '2026-02-01', notes: 'Primary vehicle assignment',
+    },
+  },
+};
+
+export function generateTemplate(type: string): Buffer {
+  const tmpl = templates[type];
+  if (!tmpl) throw new Error(`Unknown template type: ${type}`);
+
+  const wb = XLSX.utils.book_new();
+  const data = [tmpl.headers, tmpl.headers.map((h) => tmpl.example[h] ?? '')];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+
+  // Set column widths
+  ws['!cols'] = tmpl.headers.map((h) => ({ wch: Math.max(h.length + 2, 15) }));
+
+  XLSX.utils.book_append_sheet(wb, ws, type.charAt(0).toUpperCase() + type.slice(1));
+  return Buffer.from(XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }));
 }
 
 
