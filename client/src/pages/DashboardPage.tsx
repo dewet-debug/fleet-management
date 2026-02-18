@@ -9,19 +9,32 @@ import {
   HiPlus,
   HiExclamationTriangle,
   HiCurrencyDollar,
+  HiChevronRight,
 } from 'react-icons/hi2';
 import { formatCurrency } from '../utils/currency';
 
 const metricConfig = [
-  { key: 'totalVehicles', label: 'Total Vehicles', icon: HiTruck, color: 'bg-blue-500' },
-  { key: 'activeVehicles', label: 'Active Vehicles', icon: HiTruck, color: 'bg-green-500' },
-  { key: 'inServiceVehicles', label: 'In Service', icon: HiWrenchScrewdriver, color: 'bg-yellow-500' },
-  { key: 'totalDrivers', label: 'Total Drivers', icon: HiUsers, color: 'bg-purple-500' },
-  { key: 'activeDrivers', label: 'Active Drivers', icon: HiUsers, color: 'bg-indigo-500' },
-  { key: 'activeAssignments', label: 'Active Assignments', icon: HiArrowsRightLeft, color: 'bg-cyan-500' },
-  { key: 'totalServiceRecords', label: 'Service Records', icon: HiWrenchScrewdriver, color: 'bg-orange-500' },
-  { key: 'pendingServices', label: 'Pending Services', icon: HiExclamationTriangle, color: 'bg-red-500' },
+  { key: 'totalVehicles', label: 'Total Vehicles', icon: HiTruck, color: 'bg-blue-500', link: '/vehicles' },
+  { key: 'activeVehicles', label: 'Active Vehicles', icon: HiTruck, color: 'bg-green-500', link: '/vehicles?status=ACTIVE' },
+  { key: 'inServiceVehicles', label: 'In Service', icon: HiWrenchScrewdriver, color: 'bg-yellow-500', link: '/vehicles?status=IN_SERVICE' },
+  { key: 'totalDrivers', label: 'Total Drivers', icon: HiUsers, color: 'bg-purple-500', link: '/drivers' },
+  { key: 'activeDrivers', label: 'Active Drivers', icon: HiUsers, color: 'bg-indigo-500', link: '/drivers?status=ACTIVE' },
+  { key: 'activeAssignments', label: 'Active Assignments', icon: HiArrowsRightLeft, color: 'bg-cyan-500', link: '/assignments?status=ACTIVE' },
+  { key: 'totalServiceRecords', label: 'Service Records', icon: HiWrenchScrewdriver, color: 'bg-orange-500', link: '/services' },
+  { key: 'pendingServices', label: 'Pending Services', icon: HiExclamationTriangle, color: 'bg-red-500', link: '/services?status=DRAFT,SCHEDULED,AUTHORIZED' },
 ];
+
+function getFinancialLinks() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
+  return {
+    mtd: `/services?dateFrom=${year}-${month}-01&dateTo=${today}`,
+    ytd: `/services?dateFrom=${year}-01-01&dateTo=${today}`,
+  };
+}
 
 export default function DashboardPage() {
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
@@ -45,50 +58,59 @@ export default function DashboardPage() {
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {metricConfig.map((m) => (
-          <Card key={m.key} className="!p-4">
-            <div className="flex items-center gap-3">
-              <div className={`${m.color} p-2 rounded-lg`}>
-                <m.icon className="text-xl text-white" />
+          <Link key={m.key} to={m.link} className="group">
+            <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+              <div className="flex items-center gap-3">
+                <div className={`${m.color} p-2 rounded-lg`}>
+                  <m.icon className="text-xl text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {metricsLoading ? '...' : (metrics as any)?.[m.key] ?? 0}
+                  </p>
+                  <p className="text-xs text-gray-500">{m.label}</p>
+                </div>
+                <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metricsLoading ? '...' : (metrics as any)?.[m.key] ?? 0}
-                </p>
-                <p className="text-xs text-gray-500">{m.label}</p>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </Link>
         ))}
       </div>
 
       {/* Financial Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="!p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-500 p-2 rounded-lg">
-              <HiCurrencyDollar className="text-xl text-white" />
+        <Link to={getFinancialLinks().mtd} className="group">
+          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500 p-2 rounded-lg">
+                <HiCurrencyDollar className="text-xl text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-gray-900">
+                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsMTD ?? 0, 'ZAR')}
+                </p>
+                <p className="text-xs text-gray-500">Service Costs MTD</p>
+              </div>
+              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsMTD ?? 0, 'ZAR')}
-              </p>
-              <p className="text-xs text-gray-500">Service Costs MTD</p>
+          </Card>
+        </Link>
+        <Link to={getFinancialLinks().ytd} className="group">
+          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
+            <div className="flex items-center gap-3">
+              <div className="bg-teal-500 p-2 rounded-lg">
+                <HiCurrencyDollar className="text-xl text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-2xl font-bold text-gray-900">
+                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsYTD ?? 0, 'ZAR')}
+                </p>
+                <p className="text-xs text-gray-500">Service Costs YTD</p>
+              </div>
+              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
-          </div>
-        </Card>
-        <Card className="!p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-teal-500 p-2 rounded-lg">
-              <HiCurrencyDollar className="text-xl text-white" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsYTD ?? 0, 'ZAR')}
-              </p>
-              <p className="text-xs text-gray-500">Service Costs YTD</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

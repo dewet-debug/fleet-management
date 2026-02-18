@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useServices, useCreateService, useServiceTypes } from '../hooks/useServices';
 import { useVehicles } from '../hooks/useVehicles';
 import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
-import { HiPlus, HiEye } from 'react-icons/hi2';
+import { HiPlus, HiEye, HiXMark } from 'react-icons/hi2';
 import { formatCurrency, CURRENCY_OPTIONS } from '../utils/currency';
 import toast from 'react-hot-toast';
 
@@ -13,15 +13,24 @@ const statusColors: Record<string, 'gray' | 'blue' | 'purple' | 'yellow' | 'gree
 };
 
 export default function ServiceListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') || '');
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') || '');
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     vehicleId: '', serviceTypeConfigId: '', description: '',
     scheduledDate: '', serviceProviderId: '',
   });
 
-  const { data, isLoading } = useServices({ page, limit: 20, status: statusFilter || undefined });
+  const hasDateFilter = dateFrom || dateTo;
+  const { data, isLoading } = useServices({
+    page, limit: 20,
+    status: statusFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  });
   const { data: serviceTypes } = useServiceTypes();
   const { data: vehicles } = useVehicles({ limit: 100 });
   const createService = useCreateService();
@@ -50,13 +59,26 @@ export default function ServiceListPage() {
         <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> New Service</Button>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-wrap items-end">
         <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           options={[
             { value: '', label: 'All Statuses' },
+            { value: 'DRAFT,SCHEDULED,AUTHORIZED', label: 'Pending (Draft/Scheduled/Authorized)' },
             ...['DRAFT', 'SCHEDULED', 'AUTHORIZED', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'RETURNED']
               .map((s) => ({ value: s, label: s.replace('_', ' ') })),
           ]} />
+        <Input label="From" type="date" value={dateFrom}
+          onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} className="max-w-[180px]" />
+        <Input label="To" type="date" value={dateTo}
+          onChange={(e) => { setDateTo(e.target.value); setPage(1); }} className="max-w-[180px]" />
+        {(statusFilter || hasDateFilter) && (
+          <button
+            onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); setPage(1); setSearchParams({}); }}
+            className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <HiXMark /> Clear Filters
+          </button>
+        )}
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (

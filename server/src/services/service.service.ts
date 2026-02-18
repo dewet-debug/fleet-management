@@ -85,9 +85,17 @@ export async function deleteServiceInterval(id: string, userId: string) {
 export async function listServiceRecords(query: any) {
   const { page, limit, skip } = parsePagination(query);
   const where: any = {};
-  if (query.status) where.status = query.status;
+  if (query.status) {
+    const statuses = query.status.split(',').map((s: string) => s.trim());
+    where.status = statuses.length === 1 ? statuses[0] : { in: statuses };
+  }
   if (query.vehicleId) where.vehicleId = query.vehicleId;
   if (query.serviceProviderId) where.serviceProviderId = query.serviceProviderId;
+  if (query.dateFrom || query.dateTo) {
+    where.createdAt = {};
+    if (query.dateFrom) where.createdAt.gte = new Date(query.dateFrom);
+    if (query.dateTo) where.createdAt.lte = new Date(query.dateTo + 'T23:59:59.999Z');
+  }
 
   const [data, total] = await Promise.all([
     prisma.serviceRecord.findMany({

@@ -5,6 +5,8 @@ export interface ServicesParams {
   limit?: number;
   status?: string;
   vehicleId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface TransitionData {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAssignments, useCreateAssignment, useEndAssignment } from '../hooks/useAssignments';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
@@ -7,8 +8,9 @@ import { HiPlus, HiStop } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 export default function AssignmentListPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showCreate, setShowCreate] = useState(false);
   const [endId, setEndId] = useState<string | null>(null);
   const [form, setForm] = useState({ vehicleId: '', driverId: '', startDate: new Date().toISOString().split('T')[0], notes: '' });

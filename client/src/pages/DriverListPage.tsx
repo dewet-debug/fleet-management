@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useDrivers, useCreateDriver } from '../hooks/useDrivers';
 import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
 import { HiPlus, HiEye } from 'react-icons/hi2';
@@ -15,9 +15,10 @@ const defaultForm = {
 };
 
 export default function DriverListPage() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
