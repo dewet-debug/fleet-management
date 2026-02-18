@@ -15,6 +15,7 @@ import ServiceTypesPage from './pages/ServiceTypesPage';
 import ServiceIntervalsPage from './pages/ServiceIntervalsPage';
 import ServiceProviderPortalPage from './pages/ServiceProviderPortalPage';
 import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
+import BulkUploadPage from './pages/BulkUploadPage';
 
 export default function App() {
   return (
@@ -59,6 +60,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <CartrackIntegrationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="bulk-upload"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'FLEET_MANAGER']}>
+                <BulkUploadPage />
               </ProtectedRoute>
             }
           />

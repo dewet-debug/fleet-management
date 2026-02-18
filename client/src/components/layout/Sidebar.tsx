@@ -9,6 +9,7 @@ import {
   HiCog6Tooth,
   HiBuildingOffice2,
   HiSignal,
+  HiArrowUpTray,
 } from 'react-icons/hi2';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -46,6 +47,12 @@ export default function Sidebar() {
         <NavLink to="/services" className={navLinkClass}>
           <HiWrenchScrewdriver className="text-lg" /> Services
         </NavLink>
+
+        {(user?.role === 'ADMIN' || user?.role === 'FLEET_MANAGER') && (
+          <NavLink to="/bulk-upload" className={navLinkClass}>
+            <HiArrowUpTray className="text-lg" /> Bulk Upload
+          </NavLink>
+        )}
 
         {user?.role === 'ADMIN' && (
           <>
