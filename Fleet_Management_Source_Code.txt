@@ -1,7 +1,7 @@
 ================================================================================
 FLEET MANAGEMENT APPLICATION - COMPLETE SOURCE CODE
-Generated: 18 Feb 2026 19:14:24
-Total files: 109
+Generated: 18 Feb 2026 20:04:23
+Total files: 131
 ================================================================================
 
 ================================================================================
@@ -197,6 +197,162 @@ export const refreshToken = async (): Promise<LoginResponse> => {
     refreshToken: token,
   });
   return data.data;
+};
+
+
+================================================================================
+FILE: ./client/src/api/cartrack.ts
+================================================================================
+import client from './client';
+
+// ---- Types ----
+
+export interface CartrackConfig {
+  id: string;
+  apiBaseUrl: string;
+  apiUsername: string;
+  apiPasswordEncrypted: string;
+  isEnabled: boolean;
+  syncIntervalMinutes: number;
+  vehicleSyncEnabled: boolean;
+  tripSyncEnabled: boolean;
+  driverSyncEnabled: boolean;
+  alertSyncEnabled: boolean;
+  fuelSyncEnabled: boolean;
+  lastHealthCheck: string | null;
+}
+
+export interface FleetVehicle {
+  id: string;
+  vehicleId: string;
+  licensePlate: string;
+  cartrackVehicleId: string | null;
+  isActive: boolean;
+  lastSyncedAt: string | null;
+  syncStatus: string;
+  syncErrorMessage: string | null;
+  vehicle: { id: string; make: string; model: string; year: number; licensePlate: string };
+}
+
+export interface SyncLog {
+  id: string;
+  syncType: string;
+  status: string;
+  triggeredBy: string;
+  triggeredByUserId: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  recordsFetched: number;
+  recordsCreated: number;
+  recordsUpdated: number;
+  recordsErrored: number;
+  errorMessage: string | null;
+  errorDetails: string | null;
+  durationMs: number | null;
+}
+
+export interface SchedulerStatus {
+  isRunning: boolean;
+  isSyncing: boolean;
+  intervalMinutes: number;
+}
+
+export interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+  vehicleCount?: number;
+}
+
+// ---- Config ----
+
+export const getCartrackConfig = async (): Promise<CartrackConfig> => {
+  const { data } = await client.get('/cartrack/config');
+  return data.data;
+};
+
+export const updateCartrackConfig = async (configData: Record<string, any>): Promise<CartrackConfig> => {
+  const { data } = await client.patch('/cartrack/config', configData);
+  return data.data;
+};
+
+export const testCartrackConnection = async (): Promise<ConnectionTestResult> => {
+  const { data } = await client.post('/cartrack/config/test-connection');
+  return data.data;
+};
+
+// ---- Fleet Vehicles ----
+
+export const getFleetVehicles = async (params?: { page?: number; limit?: number; search?: string }) => {
+  const { data } = await client.get('/cartrack/fleet-vehicles', { params });
+  return data;
+};
+
+export const addFleetVehicle = async (vehicleData: { vehicleId: string; licensePlate: string }): Promise<FleetVehicle> => {
+  const { data } = await client.post('/cartrack/fleet-vehicles', vehicleData);
+  return data.data;
+};
+
+export const bulkAddFleetVehicles = async (vehicles: { vehicleId: string; licensePlate: string }[]) => {
+  const { data } = await client.post('/cartrack/fleet-vehicles/bulk', { vehicles });
+  return data.data;
+};
+
+export const removeFleetVehicle = async (id: string): Promise<void> => {
+  await client.delete(`/cartrack/fleet-vehicles/${id}`);
+};
+
+// ---- Sync ----
+
+export const triggerSync = async (syncType: string): Promise<{ syncLogId: string }> => {
+  const { data } = await client.post('/cartrack/sync', { syncType });
+  return data.data;
+};
+
+export const getSchedulerStatus = async (): Promise<SchedulerStatus> => {
+  const { data } = await client.get('/cartrack/sync/status');
+  return data.data;
+};
+
+export const getSyncLogs = async (params?: { page?: number; limit?: number; syncType?: string; status?: string }) => {
+  const { data } = await client.get('/cartrack/sync/logs', { params });
+  return data;
+};
+
+export const getSyncLogById = async (id: string): Promise<SyncLog> => {
+  const { data } = await client.get(`/cartrack/sync/logs/${id}`);
+  return data.data;
+};
+
+// ---- Synced Data Views ----
+
+export const getVehicleCartrackData = async (id: string) => {
+  const { data } = await client.get(`/cartrack/vehicles/${id}/data`);
+  return data.data;
+};
+
+export const getVehicleTrips = async (id: string, params?: { page?: number; limit?: number }) => {
+  const { data } = await client.get(`/cartrack/vehicles/${id}/trips`, { params });
+  return data;
+};
+
+export const getVehicleAlerts = async (id: string, params?: { page?: number; limit?: number }) => {
+  const { data } = await client.get(`/cartrack/vehicles/${id}/alerts`, { params });
+  return data;
+};
+
+export const getVehicleFuel = async (id: string, params?: { page?: number; limit?: number }) => {
+  const { data } = await client.get(`/cartrack/vehicles/${id}/fuel`, { params });
+  return data;
+};
+
+export const getCartrackDrivers = async (params?: { page?: number; limit?: number }) => {
+  const { data } = await client.get('/cartrack/drivers', { params });
+  return data;
+};
+
+export const getVehicleGroups = async (params?: { page?: number; limit?: number }) => {
+  const { data } = await client.get('/cartrack/vehicle-groups', { params });
+  return data;
 };
 
 
@@ -727,6 +883,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import ServiceTypesPage from './pages/ServiceTypesPage';
 import ServiceIntervalsPage from './pages/ServiceIntervalsPage';
 import ServiceProviderPortalPage from './pages/ServiceProviderPortalPage';
+import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
 
 export default function App() {
   return (
@@ -763,6 +920,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <ServiceIntervalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/cartrack"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <CartrackIntegrationPage />
               </ProtectedRoute>
             }
           />
@@ -883,6 +1048,7 @@ import {
   HiWrenchScrewdriver,
   HiCog6Tooth,
   HiBuildingOffice2,
+  HiSignal,
 } from 'react-icons/hi2';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -934,6 +1100,9 @@ export default function Sidebar() {
             </NavLink>
             <NavLink to="/admin/service-intervals" className={navLinkClass}>
               <HiCog6Tooth className="text-lg" /> Intervals
+            </NavLink>
+            <NavLink to="/admin/cartrack" className={navLinkClass}>
+              <HiSignal className="text-lg" /> Cartrack
             </NavLink>
           </>
         )}
@@ -1832,6 +2001,123 @@ export const useEndAssignment = () => {
 
 
 ================================================================================
+FILE: ./client/src/hooks/useCartrack.ts
+================================================================================
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  getCartrackConfig,
+  updateCartrackConfig,
+  testCartrackConnection,
+  getFleetVehicles,
+  addFleetVehicle,
+  bulkAddFleetVehicles,
+  removeFleetVehicle,
+  triggerSync,
+  getSchedulerStatus,
+  getSyncLogs,
+  getSyncLogById,
+} from '../api/cartrack';
+import toast from 'react-hot-toast';
+
+// ---- Config ----
+
+export const useCartrackConfig = () =>
+  useQuery({ queryKey: ['cartrack', 'config'], queryFn: getCartrackConfig });
+
+export const useUpdateCartrackConfig = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: updateCartrackConfig,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartrack', 'config'] });
+      qc.invalidateQueries({ queryKey: ['cartrack', 'scheduler-status'] });
+      toast.success('Configuration updated');
+    },
+    onError: () => toast.error('Failed to update configuration'),
+  });
+};
+
+export const useTestConnection = () =>
+  useMutation({
+    mutationFn: testCartrackConnection,
+    onSuccess: (data) => {
+      if (data.success) toast.success(data.message);
+      else toast.error(data.message);
+    },
+    onError: () => toast.error('Connection test failed'),
+  });
+
+// ---- Fleet Vehicles ----
+
+export const useFleetVehicles = (params?: { page?: number; limit?: number; search?: string }) =>
+  useQuery({ queryKey: ['cartrack', 'fleet-vehicles', params], queryFn: () => getFleetVehicles(params) });
+
+export const useAddFleetVehicle = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: addFleetVehicle,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartrack', 'fleet-vehicles'] });
+      toast.success('Vehicle added to Cartrack sync');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error?.message || 'Failed to add vehicle'),
+  });
+};
+
+export const useBulkAddFleetVehicles = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: bulkAddFleetVehicles,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartrack', 'fleet-vehicles'] });
+      toast.success('Vehicles added to Cartrack sync');
+    },
+    onError: () => toast.error('Failed to bulk add vehicles'),
+  });
+};
+
+export const useRemoveFleetVehicle = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: removeFleetVehicle,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartrack', 'fleet-vehicles'] });
+      toast.success('Vehicle removed from Cartrack sync');
+    },
+    onError: () => toast.error('Failed to remove vehicle'),
+  });
+};
+
+// ---- Sync ----
+
+export const useTriggerSync = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: triggerSync,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartrack', 'sync-logs'] });
+      qc.invalidateQueries({ queryKey: ['cartrack', 'scheduler-status'] });
+      toast.success('Sync triggered');
+    },
+    onError: () => toast.error('Failed to trigger sync'),
+  });
+};
+
+export const useSchedulerStatus = () =>
+  useQuery({
+    queryKey: ['cartrack', 'scheduler-status'],
+    queryFn: getSchedulerStatus,
+    refetchInterval: 10000,
+  });
+
+export const useSyncLogs = (params?: { page?: number; limit?: number; syncType?: string; status?: string }) =>
+  useQuery({ queryKey: ['cartrack', 'sync-logs', params], queryFn: () => getSyncLogs(params) });
+
+export const useSyncLog = (id: string) =>
+  useQuery({ queryKey: ['cartrack', 'sync-logs', id], queryFn: () => getSyncLogById(id), enabled: !!id });
+
+
+================================================================================
 FILE: ./client/src/hooks/useDashboard.ts
 ================================================================================
 import { useQuery } from '@tanstack/react-query';
@@ -2387,6 +2673,401 @@ export default function AssignmentListPage() {
 
       <ConfirmDialog isOpen={!!endId} onClose={() => setEndId(null)} onConfirm={handleEnd}
         title="End Assignment" message="Are you sure you want to end this assignment?" variant="danger" />
+    </div>
+  );
+}
+
+
+================================================================================
+FILE: ./client/src/pages/CartrackIntegrationPage.tsx
+================================================================================
+import { useState } from 'react';
+import { Card, Badge, Button, Input, Modal, ConfirmDialog, LoadingSpinner, Pagination } from '../components/ui';
+import {
+  HiPlay,
+  HiCog6Tooth,
+  HiTruck,
+  HiDocumentText,
+  HiCheck,
+  HiXMark,
+  HiTrash,
+  HiPlus,
+} from 'react-icons/hi2';
+import {
+  useCartrackConfig,
+  useUpdateCartrackConfig,
+  useTestConnection,
+  useFleetVehicles,
+  useAddFleetVehicle,
+  useRemoveFleetVehicle,
+  useTriggerSync,
+  useSchedulerStatus,
+  useSyncLogs,
+} from '../hooks/useCartrack';
+import { useVehicles } from '../hooks/useVehicles';
+import type { FleetVehicle, SyncLog } from '../api/cartrack';
+import toast from 'react-hot-toast';
+
+const syncStatusColors: Record<string, 'green' | 'yellow' | 'red' | 'gray'> = {
+  SYNCED: 'green', PENDING: 'yellow', ERROR: 'red', NOT_FOUND: 'red',
+};
+
+const logStatusColors: Record<string, 'green' | 'yellow' | 'red' | 'gray'> = {
+  COMPLETED: 'green', IN_PROGRESS: 'yellow', STARTED: 'yellow', PARTIAL: 'yellow', FAILED: 'red', CANCELLED: 'gray',
+};
+
+export default function CartrackIntegrationPage() {
+  const [tab, setTab] = useState<'overview' | 'config' | 'vehicles' | 'logs'>('overview');
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">Cartrack Integration</h1>
+
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-4">
+          {([
+            { key: 'overview', label: 'Overview', icon: HiDocumentText },
+            { key: 'config', label: 'Configuration', icon: HiCog6Tooth },
+            { key: 'vehicles', label: 'Fleet Vehicles', icon: HiTruck },
+            { key: 'logs', label: 'Sync Logs', icon: HiDocumentText },
+          ] as const).map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${
+                tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}>
+              <t.icon className="text-sm" /> {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {tab === 'overview' && <OverviewTab />}
+      {tab === 'config' && <ConfigTab />}
+      {tab === 'vehicles' && <FleetVehiclesTab />}
+      {tab === 'logs' && <SyncLogsTab />}
+    </div>
+  );
+}
+
+// ---- Overview Tab ----
+
+function OverviewTab() {
+  const { data: config, isLoading: configLoading } = useCartrackConfig();
+  const { data: scheduler } = useSchedulerStatus();
+  const { data: fleetData } = useFleetVehicles({ limit: 1 });
+  const { data: logsData } = useSyncLogs({ limit: 5 });
+  const triggerSync = useTriggerSync();
+
+  if (configLoading) return <LoadingSpinner size="lg" />;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="!p-4">
+          <p className="text-xs text-gray-500">Integration</p>
+          <Badge color={config?.isEnabled ? 'green' : 'red'}>
+            {config?.isEnabled ? 'Enabled' : 'Disabled'}
+          </Badge>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-xs text-gray-500">Scheduler</p>
+          <Badge color={scheduler?.isRunning ? 'green' : 'gray'}>
+            {scheduler?.isRunning ? `Running (${scheduler.intervalMinutes}m)` : 'Stopped'}
+          </Badge>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-xs text-gray-500">Sync Status</p>
+          <Badge color={scheduler?.isSyncing ? 'yellow' : 'gray'}>
+            {scheduler?.isSyncing ? 'Syncing...' : 'Idle'}
+          </Badge>
+        </Card>
+        <Card className="!p-4">
+          <p className="text-xs text-gray-500">Fleet Vehicles</p>
+          <p className="text-2xl font-bold text-gray-900">{fleetData?.pagination?.total ?? 0}</p>
+        </Card>
+      </div>
+
+      <div className="flex gap-3">
+        <Button onClick={() => triggerSync.mutate('FULL')} isLoading={triggerSync.isPending}>
+          <HiPlay className="mr-1" /> Sync Now
+        </Button>
+      </div>
+
+      <Card title="Recent Sync Logs">
+        {logsData?.data?.length === 0 ? (
+          <p className="text-sm text-gray-500">No sync logs yet</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+              <tr>
+                <th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Triggered</th>
+                <th className="px-4 py-3 text-left">Started</th>
+                <th className="px-4 py-3 text-left">Duration</th>
+                <th className="px-4 py-3 text-left">Records</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {logsData?.data?.map((log: SyncLog) => (
+                <tr key={log.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{log.syncType}</td>
+                  <td className="px-4 py-3"><Badge color={logStatusColors[log.status]}>{log.status}</Badge></td>
+                  <td className="px-4 py-3">{log.triggeredBy}</td>
+                  <td className="px-4 py-3">{new Date(log.startedAt).toLocaleString()}</td>
+                  <td className="px-4 py-3">{log.durationMs ? `${(log.durationMs / 1000).toFixed(1)}s` : '-'}</td>
+                  <td className="px-4 py-3">{log.recordsFetched}F / {log.recordsCreated}C / {log.recordsUpdated}U</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ---- Config Tab ----
+
+function ConfigTab() {
+  const { data: config, isLoading } = useCartrackConfig();
+  const updateConfig = useUpdateCartrackConfig();
+  const testConnection = useTestConnection();
+  const [form, setForm] = useState<Record<string, any>>({});
+  const [dirty, setDirty] = useState(false);
+
+  if (isLoading) return <LoadingSpinner size="lg" />;
+
+  const setField = (key: string, value: any) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setDirty(true);
+  };
+
+  const getValue = (key: string) => form[key] !== undefined ? form[key] : (config as any)?.[key] ?? '';
+
+  const handleSave = () => {
+    updateConfig.mutate(form, { onSuccess: () => { setForm({}); setDirty(false); } });
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card title="API Credentials">
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="API Base URL" value={getValue('apiBaseUrl')} onChange={(e) => setField('apiBaseUrl', e.target.value)} />
+          <Input label="Username" value={getValue('apiUsername')} onChange={(e) => setField('apiUsername', e.target.value)} />
+          <Input label="API Password" type="password" value={form.apiPassword ?? ''} placeholder="Enter new password" onChange={(e) => setField('apiPassword', e.target.value)} />
+          <div className="flex items-end">
+            <Button variant="secondary" onClick={() => testConnection.mutate()} isLoading={testConnection.isPending}>
+              Test Connection
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Sync Settings">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="checkbox" className="rounded border-gray-300" checked={getValue('isEnabled')} onChange={(e) => setField('isEnabled', e.target.checked)} />
+              Enable Integration
+            </label>
+          </div>
+          <Input label="Sync Interval (minutes)" type="number" value={getValue('syncIntervalMinutes')} onChange={(e) => setField('syncIntervalMinutes', parseInt(e.target.value, 10) || 15)} className="max-w-xs" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {['vehicleSyncEnabled', 'tripSyncEnabled', 'driverSyncEnabled', 'alertSyncEnabled', 'fuelSyncEnabled'].map((key) => (
+              <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" className="rounded border-gray-300" checked={getValue(key)} onChange={(e) => setField(key, e.target.checked)} />
+                {key.replace('SyncEnabled', '').replace(/([A-Z])/g, ' $1').trim()} Sync
+              </label>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {dirty && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} isLoading={updateConfig.isPending}>Save Configuration</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Fleet Vehicles Tab ----
+
+function FleetVehiclesTab() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [showDelete, setShowDelete] = useState<FleetVehicle | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+
+  const { data, isLoading } = useFleetVehicles({ page, limit: 20, search: search || undefined });
+  const { data: allVehicles } = useVehicles({ limit: 100 });
+  const addVehicle = useAddFleetVehicle();
+  const removeVehicle = useRemoveFleetVehicle();
+
+  const handleAdd = () => {
+    const vehicle = allVehicles?.data?.find((v: any) => v.id === selectedVehicleId);
+    if (!vehicle) { toast.error('Select a vehicle'); return; }
+    addVehicle.mutate(
+      { vehicleId: vehicle.id, licensePlate: vehicle.licensePlate },
+      { onSuccess: () => { setShowAdd(false); setSelectedVehicleId(''); } },
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Input placeholder="Search by plate..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-xs" />
+        <Button onClick={() => setShowAdd(true)}><HiPlus className="mr-1" /> Add Vehicle</Button>
+      </div>
+
+      {isLoading ? <LoadingSpinner size="lg" /> : (
+        <>
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+                <tr>
+                  <th className="px-4 py-3 text-left">License Plate</th>
+                  <th className="px-4 py-3 text-left">Vehicle</th>
+                  <th className="px-4 py-3 text-left">Cartrack ID</th>
+                  <th className="px-4 py-3 text-left">Sync Status</th>
+                  <th className="px-4 py-3 text-left">Last Synced</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data?.data?.map((fv: FleetVehicle) => (
+                  <tr key={fv.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{fv.licensePlate}</td>
+                    <td className="px-4 py-3">{fv.vehicle?.make} {fv.vehicle?.model} ({fv.vehicle?.year})</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{fv.cartrackVehicleId || '-'}</td>
+                    <td className="px-4 py-3">
+                      <Badge color={syncStatusColors[fv.syncStatus]}>{fv.syncStatus}</Badge>
+                      {fv.syncErrorMessage && <p className="text-xs text-red-500 mt-1">{fv.syncErrorMessage}</p>}
+                    </td>
+                    <td className="px-4 py-3">{fv.lastSyncedAt ? new Date(fv.lastSyncedAt).toLocaleString() : '-'}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => setShowDelete(fv)} className="text-red-600 hover:text-red-800">
+                        <HiTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {data?.data?.length === 0 && (
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No fleet vehicles registered</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {data?.pagination && (
+            <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+          )}
+        </>
+      )}
+
+      <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Add Vehicle to Cartrack Sync">
+        <div className="space-y-4">
+          <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)}>
+            <option value="">Select a vehicle...</option>
+            {allVehicles?.data?.map((v: any) => (
+              <option key={v.id} value={v.id}>{v.licensePlate} — {v.make} {v.model} ({v.year})</option>
+            ))}
+          </select>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button onClick={handleAdd} isLoading={addVehicle.isPending}>Add</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={!!showDelete}
+        onClose={() => setShowDelete(null)}
+        onConfirm={() => { if (showDelete) removeVehicle.mutate(showDelete.id, { onSuccess: () => setShowDelete(null) }); }}
+        title="Remove Fleet Vehicle"
+        message={`Remove ${showDelete?.licensePlate} from Cartrack sync?`}
+        variant="danger"
+      />
+    </div>
+  );
+}
+
+// ---- Sync Logs Tab ----
+
+function SyncLogsTab() {
+  const [page, setPage] = useState(1);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const { data, isLoading } = useSyncLogs({
+    page,
+    limit: 20,
+    syncType: typeFilter || undefined,
+    status: statusFilter || undefined,
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-3">
+        <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
+          <option value="">All Types</option>
+          {['FULL', 'VEHICLES', 'TRIPS', 'DRIVERS', 'ALERTS', 'FUEL', 'VEHICLE_GROUPS'].map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+        <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+          <option value="">All Statuses</option>
+          {['STARTED', 'IN_PROGRESS', 'COMPLETED', 'PARTIAL', 'FAILED', 'CANCELLED'].map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </div>
+
+      {isLoading ? <LoadingSpinner size="lg" /> : (
+        <>
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+                <tr>
+                  <th className="px-4 py-3 text-left">Type</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Triggered</th>
+                  <th className="px-4 py-3 text-left">Started</th>
+                  <th className="px-4 py-3 text-left">Duration</th>
+                  <th className="px-4 py-3 text-left">Fetched</th>
+                  <th className="px-4 py-3 text-left">Created</th>
+                  <th className="px-4 py-3 text-left">Updated</th>
+                  <th className="px-4 py-3 text-left">Errors</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data?.data?.map((log: SyncLog) => (
+                  <tr key={log.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}>
+                    <td className="px-4 py-3 font-medium">{log.syncType}</td>
+                    <td className="px-4 py-3"><Badge color={logStatusColors[log.status]}>{log.status}</Badge></td>
+                    <td className="px-4 py-3">{log.triggeredBy}</td>
+                    <td className="px-4 py-3">{new Date(log.startedAt).toLocaleString()}</td>
+                    <td className="px-4 py-3">{log.durationMs ? `${(log.durationMs / 1000).toFixed(1)}s` : '-'}</td>
+                    <td className="px-4 py-3">{log.recordsFetched}</td>
+                    <td className="px-4 py-3">{log.recordsCreated}</td>
+                    <td className="px-4 py-3">{log.recordsUpdated}</td>
+                    <td className="px-4 py-3">{log.recordsErrored > 0 ? <span className="text-red-600">{log.recordsErrored}</span> : '0'}</td>
+                  </tr>
+                ))}
+                {data?.data?.length === 0 && (
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-500">No sync logs found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {data?.pagination && (
+            <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -4518,12 +5199,14 @@ FILE: ./server/package.json
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "axios": "^1.13.5",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.2.1",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
   },
@@ -4534,6 +5217,7 @@ FILE: ./server/package.json
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/multer": "^1.4.12",
+    "@types/node-cron": "^3.0.11",
     "@types/uuid": "^10.0.0",
     "prisma": "^5.20.0",
     "tsx": "^4.19.0",
@@ -4900,6 +5584,387 @@ PRAGMA defer_foreign_keys=OFF;
 
 
 ================================================================================
+FILE: ./server/prisma/migrations/20260218172806_add_cartrack_integration/migration.sql
+================================================================================
+-- CreateTable
+CREATE TABLE "CartrackConfig" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "apiBaseUrl" TEXT NOT NULL DEFAULT 'https://fleetapi-za.cartrack.com/rest/',
+    "apiUsername" TEXT NOT NULL DEFAULT '',
+    "apiPasswordEncrypted" TEXT NOT NULL DEFAULT '',
+    "isEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "syncIntervalMinutes" INTEGER NOT NULL DEFAULT 15,
+    "vehicleSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "tripSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "driverSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "alertSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "fuelSyncEnabled" BOOLEAN NOT NULL DEFAULT true,
+    "lastHealthCheck" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "CartrackFleetVehicle" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "vehicleId" TEXT NOT NULL,
+    "licensePlate" TEXT NOT NULL,
+    "cartrackVehicleId" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "lastSyncedAt" DATETIME,
+    "syncStatus" TEXT NOT NULL DEFAULT 'PENDING',
+    "syncErrorMessage" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackFleetVehicle_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackVehicleData" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackFleetVehicleId" TEXT NOT NULL,
+    "cartrackVehicleId" TEXT NOT NULL,
+    "registrationNumber" TEXT,
+    "make" TEXT,
+    "model" TEXT,
+    "year" TEXT,
+    "odometer" REAL,
+    "lastLatitude" REAL,
+    "lastLongitude" REAL,
+    "lastSpeed" REAL,
+    "lastIgnitionStatus" TEXT,
+    "lastEventTime" DATETIME,
+    "fuelLevel" REAL,
+    "rawVehicleJson" TEXT NOT NULL,
+    "rawStatusJson" TEXT,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackVehicleData_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackTrip" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackFleetVehicleId" TEXT NOT NULL,
+    "cartrackTripId" TEXT NOT NULL,
+    "startTime" DATETIME,
+    "endTime" DATETIME,
+    "startLatitude" REAL,
+    "startLongitude" REAL,
+    "endLatitude" REAL,
+    "endLongitude" REAL,
+    "startAddress" TEXT,
+    "endAddress" TEXT,
+    "distanceKm" REAL,
+    "durationMinutes" REAL,
+    "maxSpeed" REAL,
+    "averageSpeed" REAL,
+    "idlingDurationMinutes" REAL,
+    "fuelUsedLitres" REAL,
+    "driverName" TEXT,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackTrip_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackDriver" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackDriverId" TEXT NOT NULL,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "employeeNumber" TEXT,
+    "licenseNumber" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
+    "status" TEXT,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "CartrackDriverLinkage" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackVehicleId" TEXT NOT NULL,
+    "cartrackDriverId" TEXT NOT NULL,
+    "startDate" DATETIME,
+    "endDate" DATETIME,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackDriverLinkage_cartrackDriverId_fkey" FOREIGN KEY ("cartrackDriverId") REFERENCES "CartrackDriver" ("cartrackDriverId") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackAlert" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackFleetVehicleId" TEXT NOT NULL,
+    "cartrackAlertId" TEXT NOT NULL,
+    "alertType" TEXT,
+    "severity" TEXT,
+    "message" TEXT,
+    "latitude" REAL,
+    "longitude" REAL,
+    "eventTime" DATETIME,
+    "isAcknowledged" BOOLEAN NOT NULL DEFAULT false,
+    "acknowledgedBy" TEXT,
+    "acknowledgedAt" DATETIME,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackAlert_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackFuelRecord" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackFleetVehicleId" TEXT NOT NULL,
+    "cartrackFuelId" TEXT NOT NULL,
+    "eventTime" DATETIME,
+    "litres" REAL,
+    "costPerLitre" REAL,
+    "totalCost" REAL,
+    "odometer" REAL,
+    "location" TEXT,
+    "fuelType" TEXT,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CartrackFuelRecord_cartrackFleetVehicleId_fkey" FOREIGN KEY ("cartrackFleetVehicleId") REFERENCES "CartrackFleetVehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "CartrackVehicleGroup" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "cartrackGroupId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "vehicleCount" INTEGER NOT NULL DEFAULT 0,
+    "rawJson" TEXT NOT NULL,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "CartrackSyncLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "syncType" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "triggeredBy" TEXT NOT NULL,
+    "triggeredByUserId" TEXT,
+    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "completedAt" DATETIME,
+    "recordsFetched" INTEGER NOT NULL DEFAULT 0,
+    "recordsCreated" INTEGER NOT NULL DEFAULT 0,
+    "recordsUpdated" INTEGER NOT NULL DEFAULT 0,
+    "recordsErrored" INTEGER NOT NULL DEFAULT 0,
+    "errorMessage" TEXT,
+    "errorDetails" TEXT,
+    "durationMs" INTEGER,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- RedefineTables
+PRAGMA defer_foreign_keys=ON;
+PRAGMA foreign_keys=OFF;
+CREATE TABLE "new_ServiceRecord" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "vehicleId" TEXT NOT NULL,
+    "serviceProviderId" TEXT,
+    "serviceTypeConfigId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "description" TEXT NOT NULL,
+    "scheduledDate" DATETIME,
+    "authorizedBy" TEXT,
+    "authorizedAt" DATETIME,
+    "startedAt" DATETIME,
+    "completedAt" DATETIME,
+    "approvedBy" TEXT,
+    "approvedAt" DATETIME,
+    "returnedAt" DATETIME,
+    "driverId" TEXT,
+    "laborCost" REAL,
+    "partsCost" REAL,
+    "additionalCharges" REAL,
+    "vatAmount" REAL,
+    "totalCostExclVat" REAL,
+    "totalCostInclVat" REAL,
+    "currency" TEXT NOT NULL DEFAULT 'ZAR',
+    "invoiceNumber" TEXT,
+    "invoiceDate" DATETIME,
+    "paymentMethod" TEXT,
+    "isWarrantyClaim" BOOLEAN NOT NULL DEFAULT false,
+    "kilometersAtService" INTEGER,
+    "conditionBefore" TEXT,
+    "conditionAfter" TEXT,
+    "technicianNotes" TEXT,
+    "internalNotes" TEXT,
+    "createdBy" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "ServiceRecord_vehicleId_fkey" FOREIGN KEY ("vehicleId") REFERENCES "Vehicle" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_serviceProviderId_fkey" FOREIGN KEY ("serviceProviderId") REFERENCES "ServiceProvider" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_serviceTypeConfigId_fkey" FOREIGN KEY ("serviceTypeConfigId") REFERENCES "ServiceTypeConfig" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_driverId_fkey" FOREIGN KEY ("driverId") REFERENCES "Driver" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_authorizedBy_fkey" FOREIGN KEY ("authorizedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_approvedBy_fkey" FOREIGN KEY ("approvedBy") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "ServiceRecord_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+INSERT INTO "new_ServiceRecord" ("additionalCharges", "approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "driverId", "id", "internalNotes", "invoiceDate", "invoiceNumber", "isWarrantyClaim", "kilometersAtService", "laborCost", "partsCost", "paymentMethod", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "totalCostExclVat", "totalCostInclVat", "updatedAt", "vatAmount", "vehicleId") SELECT "additionalCharges", "approvedAt", "approvedBy", "authorizedAt", "authorizedBy", "completedAt", "conditionAfter", "conditionBefore", "createdAt", "createdBy", "currency", "description", "driverId", "id", "internalNotes", "invoiceDate", "invoiceNumber", "isWarrantyClaim", "kilometersAtService", "laborCost", "partsCost", "paymentMethod", "returnedAt", "scheduledDate", "serviceProviderId", "serviceTypeConfigId", "startedAt", "status", "technicianNotes", "totalCostExclVat", "totalCostInclVat", "updatedAt", "vatAmount", "vehicleId" FROM "ServiceRecord";
+DROP TABLE "ServiceRecord";
+ALTER TABLE "new_ServiceRecord" RENAME TO "ServiceRecord";
+CREATE INDEX "ServiceRecord_vehicleId_idx" ON "ServiceRecord"("vehicleId");
+CREATE INDEX "ServiceRecord_serviceProviderId_idx" ON "ServiceRecord"("serviceProviderId");
+CREATE INDEX "ServiceRecord_driverId_idx" ON "ServiceRecord"("driverId");
+CREATE INDEX "ServiceRecord_serviceTypeConfigId_idx" ON "ServiceRecord"("serviceTypeConfigId");
+CREATE INDEX "ServiceRecord_authorizedBy_idx" ON "ServiceRecord"("authorizedBy");
+CREATE INDEX "ServiceRecord_approvedBy_idx" ON "ServiceRecord"("approvedBy");
+CREATE INDEX "ServiceRecord_createdBy_idx" ON "ServiceRecord"("createdBy");
+CREATE TABLE "new_Vehicle" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "vin" TEXT NOT NULL,
+    "licensePlate" TEXT NOT NULL,
+    "make" TEXT NOT NULL,
+    "model" TEXT NOT NULL,
+    "year" INTEGER NOT NULL,
+    "color" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+    "currentKilometers" INTEGER NOT NULL DEFAULT 0,
+    "fuelType" TEXT NOT NULL,
+    "purchaseDate" DATETIME,
+    "purchasePrice" REAL,
+    "currency" TEXT NOT NULL DEFAULT 'ZAR',
+    "fleetNumber" TEXT,
+    "leaseCompany" TEXT,
+    "leaseAgreementNo" TEXT,
+    "leaseStartDate" DATETIME,
+    "leaseEndDate" DATETIME,
+    "monthlyLeaseCost" REAL,
+    "currentBookValue" REAL,
+    "insuranceProvider" TEXT,
+    "insurancePolicyNo" TEXT,
+    "coverageType" TEXT,
+    "policyStartDate" DATETIME,
+    "policyExpiryDate" DATETIME,
+    "premiumAmount" REAL,
+    "registrationExpiry" DATETIME,
+    "warrantyExpiry" DATETIME,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+INSERT INTO "new_Vehicle" ("color", "coverageType", "createdAt", "currency", "currentBookValue", "currentKilometers", "fleetNumber", "fuelType", "id", "insurancePolicyNo", "insuranceProvider", "leaseAgreementNo", "leaseCompany", "leaseEndDate", "leaseStartDate", "licensePlate", "make", "model", "monthlyLeaseCost", "notes", "policyExpiryDate", "policyStartDate", "premiumAmount", "purchaseDate", "purchasePrice", "registrationExpiry", "status", "updatedAt", "vin", "warrantyExpiry", "year") SELECT "color", "coverageType", "createdAt", "currency", "currentBookValue", "currentKilometers", "fleetNumber", "fuelType", "id", "insurancePolicyNo", "insuranceProvider", "leaseAgreementNo", "leaseCompany", "leaseEndDate", "leaseStartDate", "licensePlate", "make", "model", "monthlyLeaseCost", "notes", "policyExpiryDate", "policyStartDate", "premiumAmount", "purchaseDate", "purchasePrice", "registrationExpiry", "status", "updatedAt", "vin", "warrantyExpiry", "year" FROM "Vehicle";
+DROP TABLE "Vehicle";
+ALTER TABLE "new_Vehicle" RENAME TO "Vehicle";
+CREATE UNIQUE INDEX "Vehicle_vin_key" ON "Vehicle"("vin");
+CREATE UNIQUE INDEX "Vehicle_licensePlate_key" ON "Vehicle"("licensePlate");
+PRAGMA foreign_keys=ON;
+PRAGMA defer_foreign_keys=OFF;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackFleetVehicle_vehicleId_key" ON "CartrackFleetVehicle"("vehicleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackFleetVehicle_licensePlate_key" ON "CartrackFleetVehicle"("licensePlate");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackFleetVehicle_cartrackVehicleId_key" ON "CartrackFleetVehicle"("cartrackVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackFleetVehicle_vehicleId_idx" ON "CartrackFleetVehicle"("vehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackFleetVehicle_licensePlate_idx" ON "CartrackFleetVehicle"("licensePlate");
+
+-- CreateIndex
+CREATE INDEX "CartrackFleetVehicle_cartrackVehicleId_idx" ON "CartrackFleetVehicle"("cartrackVehicleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackVehicleData_cartrackFleetVehicleId_key" ON "CartrackVehicleData"("cartrackFleetVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackVehicleData_cartrackFleetVehicleId_idx" ON "CartrackVehicleData"("cartrackFleetVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackVehicleData_cartrackVehicleId_idx" ON "CartrackVehicleData"("cartrackVehicleId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackTrip_cartrackTripId_key" ON "CartrackTrip"("cartrackTripId");
+
+-- CreateIndex
+CREATE INDEX "CartrackTrip_cartrackFleetVehicleId_idx" ON "CartrackTrip"("cartrackFleetVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackTrip_startTime_idx" ON "CartrackTrip"("startTime");
+
+-- CreateIndex
+CREATE INDEX "CartrackTrip_endTime_idx" ON "CartrackTrip"("endTime");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackDriver_cartrackDriverId_key" ON "CartrackDriver"("cartrackDriverId");
+
+-- CreateIndex
+CREATE INDEX "CartrackDriver_cartrackDriverId_idx" ON "CartrackDriver"("cartrackDriverId");
+
+-- CreateIndex
+CREATE INDEX "CartrackDriver_employeeNumber_idx" ON "CartrackDriver"("employeeNumber");
+
+-- CreateIndex
+CREATE INDEX "CartrackDriverLinkage_cartrackVehicleId_idx" ON "CartrackDriverLinkage"("cartrackVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackDriverLinkage_cartrackDriverId_idx" ON "CartrackDriverLinkage"("cartrackDriverId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackDriverLinkage_cartrackVehicleId_cartrackDriverId_key" ON "CartrackDriverLinkage"("cartrackVehicleId", "cartrackDriverId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackAlert_cartrackAlertId_key" ON "CartrackAlert"("cartrackAlertId");
+
+-- CreateIndex
+CREATE INDEX "CartrackAlert_cartrackFleetVehicleId_idx" ON "CartrackAlert"("cartrackFleetVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackAlert_alertType_idx" ON "CartrackAlert"("alertType");
+
+-- CreateIndex
+CREATE INDEX "CartrackAlert_eventTime_idx" ON "CartrackAlert"("eventTime");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackFuelRecord_cartrackFuelId_key" ON "CartrackFuelRecord"("cartrackFuelId");
+
+-- CreateIndex
+CREATE INDEX "CartrackFuelRecord_cartrackFleetVehicleId_idx" ON "CartrackFuelRecord"("cartrackFleetVehicleId");
+
+-- CreateIndex
+CREATE INDEX "CartrackFuelRecord_eventTime_idx" ON "CartrackFuelRecord"("eventTime");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CartrackVehicleGroup_cartrackGroupId_key" ON "CartrackVehicleGroup"("cartrackGroupId");
+
+-- CreateIndex
+CREATE INDEX "CartrackVehicleGroup_cartrackGroupId_idx" ON "CartrackVehicleGroup"("cartrackGroupId");
+
+-- CreateIndex
+CREATE INDEX "CartrackSyncLog_syncType_idx" ON "CartrackSyncLog"("syncType");
+
+-- CreateIndex
+CREATE INDEX "CartrackSyncLog_status_idx" ON "CartrackSyncLog"("status");
+
+-- CreateIndex
+CREATE INDEX "CartrackSyncLog_startedAt_idx" ON "CartrackSyncLog"("startedAt");
+
+
+================================================================================
 FILE: ./server/prisma/schema.prisma
 ================================================================================
 generator client {
@@ -4977,6 +6042,7 @@ model Vehicle {
   assignments             Assignment[]
   serviceRecords          ServiceRecord[]
   vehicleServiceIntervals VehicleServiceInterval[]
+  cartrackFleetVehicle    CartrackFleetVehicle?
 }
 
 model Driver {
@@ -5187,6 +6253,230 @@ model AuditLog {
 
   @@index([userId])
   @@index([entityType, entityId])
+}
+
+// ============================================================
+// CARTRACK INTEGRATION MODELS
+// ============================================================
+
+model CartrackConfig {
+  id                    String   @id @default(uuid())
+  apiBaseUrl            String   @default("https://fleetapi-za.cartrack.com/rest/")
+  apiUsername            String   @default("")
+  apiPasswordEncrypted  String   @default("")
+  isEnabled             Boolean  @default(false)
+  syncIntervalMinutes   Int      @default(15)
+  vehicleSyncEnabled    Boolean  @default(true)
+  tripSyncEnabled       Boolean  @default(true)
+  driverSyncEnabled     Boolean  @default(true)
+  alertSyncEnabled      Boolean  @default(true)
+  fuelSyncEnabled       Boolean  @default(true)
+  lastHealthCheck       DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model CartrackFleetVehicle {
+  id                String    @id @default(uuid())
+  vehicleId         String    @unique
+  licensePlate      String    @unique
+  cartrackVehicleId String?   @unique
+  isActive          Boolean   @default(true)
+  lastSyncedAt      DateTime?
+  syncStatus        String    @default("PENDING")
+  syncErrorMessage  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  vehicle             Vehicle               @relation(fields: [vehicleId], references: [id])
+  cartrackVehicleData CartrackVehicleData?
+  cartrackTrips       CartrackTrip[]
+  cartrackAlerts      CartrackAlert[]
+  cartrackFuelRecords CartrackFuelRecord[]
+
+  @@index([vehicleId])
+  @@index([licensePlate])
+  @@index([cartrackVehicleId])
+}
+
+model CartrackVehicleData {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String    @unique
+  cartrackVehicleId       String
+  registrationNumber      String?
+  make                    String?
+  model                   String?
+  year                    String?
+  odometer                Float?
+  lastLatitude            Float?
+  lastLongitude           Float?
+  lastSpeed               Float?
+  lastIgnitionStatus      String?
+  lastEventTime           DateTime?
+  fuelLevel               Float?
+  rawVehicleJson          String
+  rawStatusJson           String?
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([cartrackVehicleId])
+}
+
+model CartrackTrip {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackTripId          String    @unique
+  startTime               DateTime?
+  endTime                 DateTime?
+  startLatitude           Float?
+  startLongitude          Float?
+  endLatitude             Float?
+  endLongitude            Float?
+  startAddress            String?
+  endAddress              String?
+  distanceKm              Float?
+  durationMinutes         Float?
+  maxSpeed                Float?
+  averageSpeed            Float?
+  idlingDurationMinutes   Float?
+  fuelUsedLitres          Float?
+  driverName              String?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([startTime])
+  @@index([endTime])
+}
+
+model CartrackDriver {
+  id                String    @id @default(uuid())
+  cartrackDriverId  String    @unique
+  firstName         String?
+  lastName          String?
+  employeeNumber    String?
+  licenseNumber     String?
+  phone             String?
+  email             String?
+  status            String?
+  rawJson           String
+  fetchedAt         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  driverLinkages CartrackDriverLinkage[]
+
+  @@index([cartrackDriverId])
+  @@index([employeeNumber])
+}
+
+model CartrackDriverLinkage {
+  id                String    @id @default(uuid())
+  cartrackVehicleId String
+  cartrackDriverId  String
+  startDate         DateTime?
+  endDate           DateTime?
+  rawJson           String
+  fetchedAt         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  cartrackDriver CartrackDriver @relation(fields: [cartrackDriverId], references: [cartrackDriverId])
+
+  @@unique([cartrackVehicleId, cartrackDriverId])
+  @@index([cartrackVehicleId])
+  @@index([cartrackDriverId])
+}
+
+model CartrackAlert {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackAlertId         String    @unique
+  alertType               String?
+  severity                String?
+  message                 String?
+  latitude                Float?
+  longitude               Float?
+  eventTime               DateTime?
+  isAcknowledged          Boolean   @default(false)
+  acknowledgedBy          String?
+  acknowledgedAt          DateTime?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([alertType])
+  @@index([eventTime])
+}
+
+model CartrackFuelRecord {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackFuelId          String    @unique
+  eventTime               DateTime?
+  litres                  Float?
+  costPerLitre            Float?
+  totalCost               Float?
+  odometer                Float?
+  location                String?
+  fuelType                String?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([eventTime])
+}
+
+model CartrackVehicleGroup {
+  id              String    @id @default(uuid())
+  cartrackGroupId String    @unique
+  name            String
+  description     String?
+  vehicleCount    Int       @default(0)
+  rawJson         String
+  fetchedAt       DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([cartrackGroupId])
+}
+
+model CartrackSyncLog {
+  id                String    @id @default(uuid())
+  syncType          String
+  status            String
+  triggeredBy       String
+  triggeredByUserId String?
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  recordsFetched    Int       @default(0)
+  recordsCreated    Int       @default(0)
+  recordsUpdated    Int       @default(0)
+  recordsErrored    Int       @default(0)
+  errorMessage      String?
+  errorDetails      String?
+  durationMs        Int?
+  createdAt         DateTime  @default(now())
+
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
 }
 
 
@@ -5919,6 +7209,19 @@ main()
 
 
 ================================================================================
+FILE: ./server/src/config/cartrack.ts
+================================================================================
+import { env } from './env';
+
+export const cartrackConfig = {
+  apiBaseUrl: env.CARTRACK_API_BASE_URL,
+  apiUsername: env.CARTRACK_API_USERNAME,
+  apiPassword: env.CARTRACK_API_PASSWORD,
+  encryptionKey: env.CARTRACK_ENCRYPTION_KEY,
+};
+
+
+================================================================================
 FILE: ./server/src/config/database.ts
 ================================================================================
 import { PrismaClient } from '@prisma/client';
@@ -5939,6 +7242,12 @@ export const env = {
   JWT_EXPIRY: '15m',
   JWT_REFRESH_EXPIRY: '7d',
   UPLOAD_DIR: process.env.UPLOAD_DIR || './uploads',
+
+  // Cartrack API
+  CARTRACK_API_BASE_URL: process.env.CARTRACK_API_BASE_URL || 'https://fleetapi-za.cartrack.com/rest/',
+  CARTRACK_API_USERNAME: process.env.CARTRACK_API_USERNAME || '',
+  CARTRACK_API_PASSWORD: process.env.CARTRACK_API_PASSWORD || '',
+  CARTRACK_ENCRYPTION_KEY: process.env.CARTRACK_ENCRYPTION_KEY || 'default-encryption-key-change-in-prod',
 };
 
 
@@ -6085,6 +7394,170 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
   } catch (error) {
     next(error);
   }
+}
+
+
+================================================================================
+FILE: ./server/src/controllers/cartrack.controller.ts
+================================================================================
+import { Request, Response, NextFunction } from 'express';
+import { RequestWithUser } from '../middleware/auth';
+import { cartrackAdmin } from '../services/cartrack';
+import { runSync } from '../services/cartrack/cartrackSync.service';
+import { getSchedulerStatus as getStatus, restartScheduler } from '../lib/cartrack/syncScheduler';
+
+export async function getConfig(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const config = await cartrackAdmin.getOrCreateConfig();
+    res.json({ success: true, data: config });
+  } catch (error) { next(error); }
+}
+
+export async function updateConfig(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const config = await cartrackAdmin.updateConfig(req.body, user!.id);
+
+    // Restart scheduler if sync settings changed
+    if (req.body.isEnabled !== undefined || req.body.syncIntervalMinutes !== undefined) {
+      await restartScheduler();
+    }
+
+    res.json({ success: true, data: config });
+  } catch (error) { next(error); }
+}
+
+export async function testConnection(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.testConnection();
+    res.json({ success: true, data: result });
+  } catch (error) { next(error); }
+}
+
+export async function getFleetVehicles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.listFleetVehicles({
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+      search: req.query.search as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function addFleetVehicle(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const fv = await cartrackAdmin.addFleetVehicle(req.body.vehicleId, req.body.licensePlate, user!.id);
+    res.status(201).json({ success: true, data: fv });
+  } catch (error) { next(error); }
+}
+
+export async function bulkAddFleetVehicles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const results = await cartrackAdmin.bulkAddFleetVehicles(req.body.vehicles, user!.id);
+    res.status(201).json({ success: true, data: results });
+  } catch (error) { next(error); }
+}
+
+export async function removeFleetVehicle(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    await cartrackAdmin.removeFleetVehicle(req.params.id, user!.id);
+    res.json({ success: true, message: 'Fleet vehicle removed from sync' });
+  } catch (error) { next(error); }
+}
+
+export async function triggerSync(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const syncLogId = await runSync(req.body.syncType, 'MANUAL', user!.id);
+    res.status(202).json({ success: true, data: { syncLogId } });
+  } catch (error) { next(error); }
+}
+
+export async function getSchedulerStatus(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const status = getStatus();
+    res.json({ success: true, data: status });
+  } catch (error) { next(error); }
+}
+
+export async function getSyncLogs(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.listSyncLogs({
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+      syncType: req.query.syncType as string,
+      status: req.query.status as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function getSyncLogById(req: Request, res: Response, next: NextFunction) {
+  try {
+    const log = await cartrackAdmin.getSyncLogById(req.params.id);
+    res.json({ success: true, data: log });
+  } catch (error) { next(error); }
+}
+
+export async function getVehicleData(req: Request, res: Response, next: NextFunction) {
+  try {
+    const data = await cartrackAdmin.getVehicleCartrackData(req.params.id);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+}
+
+export async function getVehicleTrips(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.getVehicleTrips(req.params.id, {
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function getVehicleAlerts(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.getVehicleAlerts(req.params.id, {
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function getVehicleFuel(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.getVehicleFuel(req.params.id, {
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function getDrivers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.getCartrackDrivers({
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
+}
+
+export async function getVehicleGroups(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await cartrackAdmin.getVehicleGroups({
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) { next(error); }
 }
 
 
@@ -6630,6 +8103,8 @@ import serviceIntervalRoutes from './routes/serviceIntervals.routes';
 import uploadRoutes from './routes/uploads.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import portalRoutes from './routes/portal.routes';
+import cartrackRoutes from './routes/cartrack.routes';
+import { startScheduler } from './lib/cartrack/syncScheduler';
 
 const app = express();
 
@@ -6654,6 +8129,7 @@ app.use('/api/v1/service-intervals', serviceIntervalRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/portal', portalRoutes);
+app.use('/api/v1/cartrack', cartrackRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -6663,9 +8139,383 @@ ensureUploadDir();
 
 app.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
+  startScheduler().catch((err) => console.error('Failed to start Cartrack scheduler:', err));
 });
 
 export default app;
+
+
+================================================================================
+FILE: ./server/src/lib/cartrack/cartrackApiClient.ts
+================================================================================
+import axios, { AxiosInstance, AxiosError } from 'axios';
+import { CartrackPaginatedResponse } from './cartrackApiTypes';
+
+interface CartrackClientConfig {
+  baseUrl: string;
+  username: string;
+  password: string;
+  maxConcurrent?: number;
+  requestDelayMs?: number;
+  timeoutMs?: number;
+}
+
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [1000, 2000, 4000];
+const RATE_LIMIT_BACKOFF = 10000;
+
+export class CartrackApiClient {
+  private client: AxiosInstance;
+  private lastRequestTime = 0;
+  private requestDelayMs: number;
+
+  constructor(config: CartrackClientConfig) {
+    this.requestDelayMs = config.requestDelayMs ?? 200;
+
+    const auth = Buffer.from(`${config.username}:${config.password}`).toString('base64');
+
+    this.client = axios.create({
+      baseURL: config.baseUrl.replace(/\/$/, ''),
+      timeout: config.timeoutMs ?? 30000,
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+  }
+
+  private async throttle(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.requestDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs - elapsed));
+    }
+    this.lastRequestTime = Date.now();
+  }
+
+  private isRetryable(error: AxiosError): boolean {
+    if (!error.response) return true; // network error
+    const status = error.response.status;
+    return status === 429 || status >= 500;
+  }
+
+  async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await this.throttle();
+        const response = await this.client.get<T>(endpoint, { params });
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+
+        if (attempt >= MAX_RETRIES || !this.isRetryable(error)) {
+          break;
+        }
+
+        // Handle 429 with Retry-After or default backoff
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'];
+          const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : RATE_LIMIT_BACKOFF;
+          console.warn(`[Cartrack] Rate limited, waiting ${delay}ms before retry`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        const delay = RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+        console.warn(`[Cartrack] Request failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms: ${error.message}`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  async fetchAllPages<T>(endpoint: string, params?: Record<string, any>): Promise<T[]> {
+    const firstPage = await this.get<CartrackPaginatedResponse<T>>(endpoint, {
+      ...params,
+      page: 1,
+      limit: 100,
+    });
+
+    if (!firstPage.data) return [];
+
+    const allData: T[] = [...firstPage.data];
+    const totalPages = firstPage.meta?.total_pages || 1;
+
+    for (let page = 2; page <= totalPages; page++) {
+      const pageData = await this.get<CartrackPaginatedResponse<T>>(endpoint, {
+        ...params,
+        page,
+        limit: 100,
+      });
+      if (pageData.data) {
+        allData.push(...pageData.data);
+      }
+    }
+
+    return allData;
+  }
+
+  // Convenience methods
+  async getVehicles(params?: Record<string, any>) {
+    return this.fetchAllPages('/vehicles', params);
+  }
+
+  async getVehicleStatus(params?: Record<string, any>) {
+    return this.get('/vehicles/status', params);
+  }
+
+  async getTrips(params: { vehicle_id?: number; date_from?: string; date_to?: string; [key: string]: any }) {
+    return this.fetchAllPages('/trips', params);
+  }
+
+  async getDrivers(params?: Record<string, any>) {
+    return this.fetchAllPages('/drivers', params);
+  }
+
+  async getDriverLinkages(params?: Record<string, any>) {
+    return this.fetchAllPages('/vehicle-driver-linkage', params);
+  }
+
+  async getAlertNotifications(params?: Record<string, any>) {
+    return this.fetchAllPages('/alerts/notifications', params);
+  }
+
+  async getFuel(params: { vehicle_id?: number; date_from?: string; date_to?: string; [key: string]: any }) {
+    return this.fetchAllPages('/fuel', params);
+  }
+
+  async getVehicleGroups(params?: Record<string, any>) {
+    return this.fetchAllPages('/vehicle-groups', params);
+  }
+}
+
+
+================================================================================
+FILE: ./server/src/lib/cartrack/cartrackApiTypes.ts
+================================================================================
+// Cartrack API pagination meta
+export interface CartrackPaginationMeta {
+  current_page: number;
+  total_pages: number;
+  limit: number;
+  total: number;
+}
+
+export interface CartrackPaginatedResponse<T> {
+  data: T[];
+  meta: CartrackPaginationMeta;
+}
+
+// GET /vehicles
+export interface CartrackVehicleResponse {
+  vehicle_id: number;
+  registration: string;
+  make?: string;
+  model?: string;
+  year?: string;
+  vin?: string;
+  color?: string;
+  odometer?: number;
+  vehicle_group_id?: number;
+  vehicle_group_name?: string;
+  [key: string]: any;
+}
+
+// GET /vehicles/status
+export interface CartrackVehicleStatusResponse {
+  vehicle_id: number;
+  registration: string;
+  latitude?: number;
+  longitude?: number;
+  speed?: number;
+  heading?: number;
+  ignition?: string;
+  last_event_time?: string;
+  fuel_level?: number;
+  odometer?: number;
+  [key: string]: any;
+}
+
+// GET /trips
+export interface CartrackTripResponse {
+  trip_id: string | number;
+  vehicle_id: number;
+  registration?: string;
+  driver_name?: string;
+  start_time?: string;
+  end_time?: string;
+  start_latitude?: number;
+  start_longitude?: number;
+  end_latitude?: number;
+  end_longitude?: number;
+  start_address?: string;
+  end_address?: string;
+  distance?: number;
+  duration?: number;
+  max_speed?: number;
+  average_speed?: number;
+  idle_duration?: number;
+  fuel_used?: number;
+  [key: string]: any;
+}
+
+// GET /drivers
+export interface CartrackDriverResponse {
+  driver_id: string | number;
+  first_name?: string;
+  last_name?: string;
+  employee_number?: string;
+  license_number?: string;
+  phone?: string;
+  email?: string;
+  status?: string;
+  [key: string]: any;
+}
+
+// GET /vehicle-driver-linkage
+export interface CartrackDriverLinkageResponse {
+  vehicle_id: number;
+  driver_id: string | number;
+  start_date?: string;
+  end_date?: string;
+  [key: string]: any;
+}
+
+// GET /alerts/notifications
+export interface CartrackAlertNotificationResponse {
+  alert_id: string | number;
+  vehicle_id: number;
+  registration?: string;
+  alert_type?: string;
+  severity?: string;
+  message?: string;
+  latitude?: number;
+  longitude?: number;
+  event_time?: string;
+  [key: string]: any;
+}
+
+// GET /fuel
+export interface CartrackFuelResponse {
+  fuel_id?: string | number;
+  vehicle_id: number;
+  registration?: string;
+  timestamp?: string;
+  fuel_level?: number;
+  fuel_percentage?: number;
+  total_consumed?: number;
+  cost_per_litre?: number;
+  total_cost?: number;
+  odometer?: number;
+  location?: string;
+  fuel_type?: string;
+  event_type?: string;
+  [key: string]: any;
+}
+
+// GET /vehicle-groups
+export interface CartrackVehicleGroupResponse {
+  group_id: string | number;
+  name: string;
+  description?: string;
+  vehicle_count?: number;
+  [key: string]: any;
+}
+
+
+================================================================================
+FILE: ./server/src/lib/cartrack/index.ts
+================================================================================
+export { CartrackApiClient } from './cartrackApiClient';
+export * from './cartrackApiTypes';
+export { startScheduler, stopScheduler, restartScheduler, getSchedulerStatus } from './syncScheduler';
+
+
+================================================================================
+FILE: ./server/src/lib/cartrack/syncScheduler.ts
+================================================================================
+import cron, { ScheduledTask } from 'node-cron';
+import prisma from '../../config/database';
+import { runSync, getSyncRunningState } from '../../services/cartrack/cartrackSync.service';
+
+let currentTask: ScheduledTask | null = null;
+let currentIntervalMinutes = 0;
+let isSchedulerRunning = false;
+
+function minutesToCron(minutes: number): string {
+  if (minutes <= 0) return '*/15 * * * *';
+  if (minutes < 60) return `*/${minutes} * * * *`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${mins} */${hours} * * *`;
+}
+
+export async function startScheduler(): Promise<void> {
+  try {
+    const config = await prisma.cartrackConfig.findFirst();
+    if (!config || !config.isEnabled) {
+      console.log('[Cartrack] Scheduler not started — integration is disabled or not configured');
+      return;
+    }
+
+    const interval = config.syncIntervalMinutes || 15;
+    const cronExpr = minutesToCron(interval);
+
+    if (currentTask) {
+      currentTask.stop();
+      currentTask = null;
+    }
+
+    currentTask = cron.schedule(cronExpr, async () => {
+      if (getSyncRunningState()) {
+        console.log('[Cartrack] Skipping scheduled sync — previous sync still running');
+        return;
+      }
+      console.log('[Cartrack] Starting scheduled sync...');
+      try {
+        await runSync('FULL', 'SCHEDULER');
+      } catch (err) {
+        console.error('[Cartrack] Scheduled sync error:', err);
+      }
+    });
+
+    currentIntervalMinutes = interval;
+    isSchedulerRunning = true;
+    console.log(`[Cartrack] Scheduler started — syncing every ${interval} minutes (cron: ${cronExpr})`);
+  } catch (err) {
+    console.error('[Cartrack] Failed to start scheduler:', err);
+  }
+}
+
+export function stopScheduler(): void {
+  if (currentTask) {
+    currentTask.stop();
+    currentTask = null;
+  }
+  isSchedulerRunning = false;
+  console.log('[Cartrack] Scheduler stopped');
+}
+
+export async function restartScheduler(): Promise<void> {
+  stopScheduler();
+  await startScheduler();
+}
+
+export function getSchedulerStatus(): {
+  isRunning: boolean;
+  isSyncing: boolean;
+  intervalMinutes: number;
+} {
+  return {
+    isRunning: isSchedulerRunning,
+    isSyncing: getSyncRunningState(),
+    intervalMinutes: currentIntervalMinutes,
+  };
+}
 
 
 ================================================================================
@@ -6930,6 +8780,54 @@ router.post('/login', validate(loginSchema), login);
 router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.get('/me', authenticate, getMe);
+
+export default router;
+
+
+================================================================================
+FILE: ./server/src/routes/cartrack.routes.ts
+================================================================================
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
+import { authorize } from '../middleware/rbac';
+import { validate } from '../middleware/validate';
+import {
+  updateCartrackConfigSchema,
+  addFleetVehicleSchema,
+  bulkAddFleetVehiclesSchema,
+  triggerSyncSchema,
+} from '../validators/cartrack.validator';
+import * as cartrackController from '../controllers/cartrack.controller';
+
+const router = Router();
+
+router.use(authenticate);
+router.use(authorize('ADMIN'));
+
+// Config
+router.get('/config', cartrackController.getConfig);
+router.patch('/config', validate(updateCartrackConfigSchema), cartrackController.updateConfig);
+router.post('/config/test-connection', cartrackController.testConnection);
+
+// Fleet vehicle registry
+router.get('/fleet-vehicles', cartrackController.getFleetVehicles);
+router.post('/fleet-vehicles', validate(addFleetVehicleSchema), cartrackController.addFleetVehicle);
+router.post('/fleet-vehicles/bulk', validate(bulkAddFleetVehiclesSchema), cartrackController.bulkAddFleetVehicles);
+router.delete('/fleet-vehicles/:id', cartrackController.removeFleetVehicle);
+
+// Sync operations
+router.post('/sync', validate(triggerSyncSchema), cartrackController.triggerSync);
+router.get('/sync/status', cartrackController.getSchedulerStatus);
+router.get('/sync/logs', cartrackController.getSyncLogs);
+router.get('/sync/logs/:id', cartrackController.getSyncLogById);
+
+// Synced data views
+router.get('/vehicles/:id/data', cartrackController.getVehicleData);
+router.get('/vehicles/:id/trips', cartrackController.getVehicleTrips);
+router.get('/vehicles/:id/alerts', cartrackController.getVehicleAlerts);
+router.get('/vehicles/:id/fuel', cartrackController.getVehicleFuel);
+router.get('/drivers', cartrackController.getDrivers);
+router.get('/vehicle-groups', cartrackController.getVehicleGroups);
 
 export default router;
 
@@ -7324,6 +9222,1039 @@ export async function getMe(userId: string) {
 
   const { passwordHash, ...userWithoutPassword } = user;
   return userWithoutPassword;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/alertSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackAlertNotificationResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncAlerts(client: CartrackApiClient, sinceDate?: Date): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const fleetVehicles = await prisma.cartrackFleetVehicle.findMany({
+    where: { isActive: true, cartrackVehicleId: { not: null } },
+  });
+
+  if (fleetVehicles.length === 0) return result;
+
+  // Cartrack limits alert notifications to 31 days
+  const dateFrom = sinceDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dateTo = new Date();
+
+  for (const fv of fleetVehicles) {
+    try {
+      const alerts = await client.getAlertNotifications({
+        vehicle_id: parseInt(fv.cartrackVehicleId!, 10),
+        date_from: dateFrom.toISOString().split('T')[0],
+        date_to: dateTo.toISOString().split('T')[0],
+      }) as CartrackAlertNotificationResponse[];
+
+      result.fetched += alerts.length;
+
+      for (const alert of alerts) {
+        const alertId = String(alert.alert_id);
+
+        try {
+          const existing = await prisma.cartrackAlert.findUnique({
+            where: { cartrackAlertId: alertId },
+          });
+
+          const alertData = {
+            cartrackFleetVehicleId: fv.id,
+            alertType: alert.alert_type ?? null,
+            severity: alert.severity ?? null,
+            message: alert.message ?? null,
+            latitude: alert.latitude ?? null,
+            longitude: alert.longitude ?? null,
+            eventTime: alert.event_time ? new Date(alert.event_time) : null,
+            rawJson: JSON.stringify(alert),
+            fetchedAt: new Date(),
+          };
+
+          if (existing) {
+            await prisma.cartrackAlert.update({
+              where: { cartrackAlertId: alertId },
+              data: alertData,
+            });
+            result.updated++;
+          } else {
+            await prisma.cartrackAlert.create({
+              data: { cartrackAlertId: alertId, ...alertData },
+            });
+            result.created++;
+          }
+        } catch (err) {
+          console.error(`[Cartrack] Error upserting alert ${alertId}:`, err);
+          result.errored++;
+        }
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error fetching alerts for vehicle ${fv.licensePlate}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/cartrackAdmin.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { encrypt, decrypt } from '../../utils/encryption';
+import { cartrackConfig } from '../../config/cartrack';
+import { CartrackApiClient } from '../../lib/cartrack';
+import { createAuditLog } from '../../utils/audit';
+import { NotFoundError, BadRequestError } from '../../utils/errors';
+import { parsePagination, paginatedResponse } from '../../utils/pagination';
+
+// ---- Config ----
+
+export async function getOrCreateConfig() {
+  let config = await prisma.cartrackConfig.findFirst();
+  if (!config) {
+    config = await prisma.cartrackConfig.create({
+      data: {
+        apiBaseUrl: cartrackConfig.apiBaseUrl,
+        apiUsername: cartrackConfig.apiUsername,
+        apiPasswordEncrypted: cartrackConfig.apiPassword
+          ? encrypt(cartrackConfig.apiPassword, cartrackConfig.encryptionKey)
+          : '',
+      },
+    });
+  }
+  return {
+    ...config,
+    apiPasswordEncrypted: config.apiPasswordEncrypted ? '********' : '',
+  };
+}
+
+export async function updateConfig(data: any, userId: string) {
+  let config = await prisma.cartrackConfig.findFirst();
+  if (!config) {
+    config = await prisma.cartrackConfig.create({ data: {} as any });
+  }
+
+  const updateData: any = {};
+  if (data.apiBaseUrl !== undefined) updateData.apiBaseUrl = data.apiBaseUrl;
+  if (data.apiUsername !== undefined) updateData.apiUsername = data.apiUsername;
+  if (data.apiPassword !== undefined) {
+    updateData.apiPasswordEncrypted = encrypt(data.apiPassword, cartrackConfig.encryptionKey);
+  }
+  if (data.isEnabled !== undefined) updateData.isEnabled = data.isEnabled;
+  if (data.syncIntervalMinutes !== undefined) updateData.syncIntervalMinutes = data.syncIntervalMinutes;
+  if (data.vehicleSyncEnabled !== undefined) updateData.vehicleSyncEnabled = data.vehicleSyncEnabled;
+  if (data.tripSyncEnabled !== undefined) updateData.tripSyncEnabled = data.tripSyncEnabled;
+  if (data.driverSyncEnabled !== undefined) updateData.driverSyncEnabled = data.driverSyncEnabled;
+  if (data.alertSyncEnabled !== undefined) updateData.alertSyncEnabled = data.alertSyncEnabled;
+  if (data.fuelSyncEnabled !== undefined) updateData.fuelSyncEnabled = data.fuelSyncEnabled;
+
+  const updated = await prisma.cartrackConfig.update({
+    where: { id: config.id },
+    data: updateData,
+  });
+
+  await createAuditLog(prisma, userId, 'UPDATE', 'CartrackConfig', config.id);
+
+  return {
+    ...updated,
+    apiPasswordEncrypted: updated.apiPasswordEncrypted ? '********' : '',
+  };
+}
+
+export async function testConnection(): Promise<{ success: boolean; message: string; vehicleCount?: number }> {
+  const config = await prisma.cartrackConfig.findFirst();
+  if (!config) throw new BadRequestError('Cartrack config not found. Save credentials first.');
+
+  let password = '';
+  try {
+    password = config.apiPasswordEncrypted
+      ? decrypt(config.apiPasswordEncrypted, cartrackConfig.encryptionKey)
+      : '';
+  } catch {
+    password = cartrackConfig.apiPassword;
+  }
+
+  const username = config.apiUsername || cartrackConfig.apiUsername;
+  if (!username || !password) {
+    throw new BadRequestError('API credentials not configured');
+  }
+
+  const client = new CartrackApiClient({
+    baseUrl: config.apiBaseUrl || cartrackConfig.apiBaseUrl,
+    username,
+    password,
+  });
+
+  try {
+    const response: any = await client.get('/vehicles', { limit: 1 });
+    const total = response?.meta?.total ?? response?.data?.length ?? 0;
+    return { success: true, message: 'Connection successful', vehicleCount: total };
+  } catch (err: any) {
+    const status = err.response?.status;
+    if (status === 401) return { success: false, message: 'Authentication failed — check username and password' };
+    if (status === 403) return { success: false, message: 'Access forbidden — check API permissions' };
+    return { success: false, message: `Connection failed: ${err.message}` };
+  }
+}
+
+// ---- Fleet Vehicles ----
+
+export async function listFleetVehicles(params: { page?: string; limit?: string; search?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const where: any = {};
+  if (params.search) {
+    where.licensePlate = { contains: params.search };
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackFleetVehicle.findMany({
+      where,
+      include: { vehicle: { select: { id: true, make: true, model: true, year: true, licensePlate: true } } },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.cartrackFleetVehicle.count({ where }),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function addFleetVehicle(vehicleId: string, licensePlate: string, userId: string) {
+  const vehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
+  if (!vehicle) throw new NotFoundError('Vehicle not found');
+
+  const existing = await prisma.cartrackFleetVehicle.findFirst({
+    where: { OR: [{ vehicleId }, { licensePlate }] },
+  });
+  if (existing) throw new BadRequestError('Vehicle is already registered for Cartrack sync');
+
+  const fv = await prisma.cartrackFleetVehicle.create({
+    data: { vehicleId, licensePlate: licensePlate.toUpperCase().replace(/\s/g, '') },
+    include: { vehicle: { select: { id: true, make: true, model: true, year: true, licensePlate: true } } },
+  });
+
+  await createAuditLog(prisma, userId, 'CREATE', 'CartrackFleetVehicle', fv.id);
+  return fv;
+}
+
+export async function bulkAddFleetVehicles(items: { vehicleId: string; licensePlate: string }[], userId: string) {
+  const results: any[] = [];
+  for (const item of items) {
+    try {
+      const fv = await addFleetVehicle(item.vehicleId, item.licensePlate, userId);
+      results.push({ ...fv, status: 'added' });
+    } catch (err: any) {
+      results.push({ vehicleId: item.vehicleId, licensePlate: item.licensePlate, status: 'error', error: err.message });
+    }
+  }
+  return results;
+}
+
+export async function removeFleetVehicle(id: string, userId: string) {
+  const fv = await prisma.cartrackFleetVehicle.findUnique({ where: { id } });
+  if (!fv) throw new NotFoundError('Fleet vehicle not found');
+
+  await prisma.cartrackFleetVehicle.update({
+    where: { id },
+    data: { isActive: false },
+  });
+
+  await createAuditLog(prisma, userId, 'DELETE', 'CartrackFleetVehicle', id);
+}
+
+// ---- Sync Logs ----
+
+export async function listSyncLogs(params: { page?: string; limit?: string; syncType?: string; status?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const where: any = {};
+  if (params.syncType) where.syncType = params.syncType;
+  if (params.status) where.status = params.status;
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackSyncLog.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { startedAt: 'desc' },
+    }),
+    prisma.cartrackSyncLog.count({ where }),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function getSyncLogById(id: string) {
+  const log = await prisma.cartrackSyncLog.findUnique({ where: { id } });
+  if (!log) throw new NotFoundError('Sync log not found');
+  return log;
+}
+
+// ---- Vehicle Data Views ----
+
+export async function getVehicleCartrackData(fleetVehicleId: string) {
+  const data = await prisma.cartrackVehicleData.findUnique({
+    where: { cartrackFleetVehicleId: fleetVehicleId },
+  });
+  if (!data) throw new NotFoundError('No Cartrack data found for this vehicle');
+  return data;
+}
+
+export async function getVehicleTrips(fleetVehicleId: string, params: { page?: string; limit?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackTrip.findMany({
+      where: { cartrackFleetVehicleId: fleetVehicleId },
+      skip,
+      take: limit,
+      orderBy: { startTime: 'desc' },
+    }),
+    prisma.cartrackTrip.count({ where: { cartrackFleetVehicleId: fleetVehicleId } }),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function getVehicleAlerts(fleetVehicleId: string, params: { page?: string; limit?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackAlert.findMany({
+      where: { cartrackFleetVehicleId: fleetVehicleId },
+      skip,
+      take: limit,
+      orderBy: { eventTime: 'desc' },
+    }),
+    prisma.cartrackAlert.count({ where: { cartrackFleetVehicleId: fleetVehicleId } }),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function getVehicleFuel(fleetVehicleId: string, params: { page?: string; limit?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackFuelRecord.findMany({
+      where: { cartrackFleetVehicleId: fleetVehicleId },
+      skip,
+      take: limit,
+      orderBy: { eventTime: 'desc' },
+    }),
+    prisma.cartrackFuelRecord.count({ where: { cartrackFleetVehicleId: fleetVehicleId } }),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function getCartrackDrivers(params: { page?: string; limit?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackDriver.findMany({ skip, take: limit, orderBy: { createdAt: 'desc' } }),
+    prisma.cartrackDriver.count(),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+export async function getVehicleGroups(params: { page?: string; limit?: string }) {
+  const { page, limit, skip } = parsePagination(params);
+
+  const [data, total] = await Promise.all([
+    prisma.cartrackVehicleGroup.findMany({ skip, take: limit, orderBy: { name: 'asc' } }),
+    prisma.cartrackVehicleGroup.count(),
+  ]);
+
+  return paginatedResponse(data, total, { page, limit, skip });
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/cartrackSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient } from '../../lib/cartrack';
+import { decrypt } from '../../utils/encryption';
+import { cartrackConfig } from '../../config/cartrack';
+import { syncVehicles } from './vehicleSync.service';
+import { syncTrips } from './tripSync.service';
+import { syncDrivers, syncDriverLinkages } from './driverSync.service';
+import { syncAlerts } from './alertSync.service';
+import { syncFuel } from './fuelSync.service';
+import { syncVehicleGroups } from './vehicleGroupSync.service';
+
+let isSyncRunning = false;
+
+export function getSyncRunningState(): boolean {
+  return isSyncRunning;
+}
+
+async function getClient(): Promise<CartrackApiClient | null> {
+  const config = await prisma.cartrackConfig.findFirst();
+  if (!config) return null;
+
+  let password = '';
+  try {
+    password = config.apiPasswordEncrypted
+      ? decrypt(config.apiPasswordEncrypted, cartrackConfig.encryptionKey)
+      : '';
+  } catch {
+    // If decryption fails, try using env var directly
+    password = cartrackConfig.apiPassword;
+  }
+
+  const username = config.apiUsername || cartrackConfig.apiUsername;
+  if (!username || !password) return null;
+
+  return new CartrackApiClient({
+    baseUrl: config.apiBaseUrl || cartrackConfig.apiBaseUrl,
+    username,
+    password,
+  });
+}
+
+export { getClient as getCartrackClient };
+
+type SyncType = 'FULL' | 'VEHICLES' | 'TRIPS' | 'DRIVERS' | 'DRIVER_LINKAGE' | 'ALERTS' | 'FUEL' | 'VEHICLE_GROUPS';
+
+export async function runSync(
+  syncType: SyncType,
+  triggeredBy: 'SCHEDULER' | 'MANUAL',
+  userId?: string,
+  sinceDate?: Date,
+): Promise<string> {
+  if (isSyncRunning) {
+    const log = await prisma.cartrackSyncLog.create({
+      data: {
+        syncType,
+        status: 'CANCELLED',
+        triggeredBy,
+        triggeredByUserId: userId,
+        errorMessage: 'Another sync is already in progress',
+      },
+    });
+    return log.id;
+  }
+
+  // Check kill switch
+  const config = await prisma.cartrackConfig.findFirst();
+  if (!config || !config.isEnabled) {
+    const log = await prisma.cartrackSyncLog.create({
+      data: {
+        syncType,
+        status: 'CANCELLED',
+        triggeredBy,
+        triggeredByUserId: userId,
+        errorMessage: 'Sync is disabled',
+      },
+    });
+    return log.id;
+  }
+
+  const log = await prisma.cartrackSyncLog.create({
+    data: {
+      syncType,
+      status: 'STARTED',
+      triggeredBy,
+      triggeredByUserId: userId,
+    },
+  });
+
+  // Fire and forget — the sync runs in the background
+  runSyncInternal(log.id, syncType, config, sinceDate).catch((err) => {
+    console.error('[Cartrack] Unhandled sync error:', err);
+  });
+
+  return log.id;
+}
+
+async function runSyncInternal(
+  logId: string,
+  syncType: SyncType,
+  config: any,
+  sinceDate?: Date,
+): Promise<void> {
+  isSyncRunning = true;
+  const startTime = Date.now();
+  let totalFetched = 0;
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  let totalErrored = 0;
+
+  try {
+    await prisma.cartrackSyncLog.update({
+      where: { id: logId },
+      data: { status: 'IN_PROGRESS' },
+    });
+
+    const client = await getClient();
+    if (!client) {
+      throw new Error('Failed to create Cartrack API client — check credentials');
+    }
+
+    const syncSteps: { type: string; enabled: boolean; fn: () => Promise<{ fetched: number; created: number; updated: number; errored: number }> }[] = [
+      { type: 'VEHICLES', enabled: config.vehicleSyncEnabled, fn: () => syncVehicles(client) },
+      { type: 'TRIPS', enabled: config.tripSyncEnabled, fn: () => syncTrips(client, sinceDate) },
+      { type: 'DRIVERS', enabled: config.driverSyncEnabled, fn: () => syncDrivers(client) },
+      { type: 'DRIVER_LINKAGE', enabled: config.driverSyncEnabled, fn: () => syncDriverLinkages(client) },
+      { type: 'ALERTS', enabled: config.alertSyncEnabled, fn: () => syncAlerts(client, sinceDate) },
+      { type: 'FUEL', enabled: config.fuelSyncEnabled, fn: () => syncFuel(client, sinceDate) },
+      { type: 'VEHICLE_GROUPS', enabled: true, fn: () => syncVehicleGroups(client) },
+    ];
+
+    for (const step of syncSteps) {
+      if (syncType !== 'FULL' && syncType !== step.type) continue;
+      if (!step.enabled) continue;
+
+      try {
+        console.log(`[Cartrack] Starting ${step.type} sync...`);
+        const result = await step.fn();
+        totalFetched += result.fetched;
+        totalCreated += result.created;
+        totalUpdated += result.updated;
+        totalErrored += result.errored;
+        console.log(`[Cartrack] ${step.type} sync complete: fetched=${result.fetched}, created=${result.created}, updated=${result.updated}, errored=${result.errored}`);
+      } catch (err) {
+        console.error(`[Cartrack] ${step.type} sync failed:`, err);
+        totalErrored++;
+      }
+    }
+
+    await prisma.cartrackSyncLog.update({
+      where: { id: logId },
+      data: {
+        status: totalErrored > 0 ? 'PARTIAL' : 'COMPLETED',
+        completedAt: new Date(),
+        recordsFetched: totalFetched,
+        recordsCreated: totalCreated,
+        recordsUpdated: totalUpdated,
+        recordsErrored: totalErrored,
+        durationMs: Date.now() - startTime,
+      },
+    });
+  } catch (err) {
+    await prisma.cartrackSyncLog.update({
+      where: { id: logId },
+      data: {
+        status: 'FAILED',
+        completedAt: new Date(),
+        recordsFetched: totalFetched,
+        recordsCreated: totalCreated,
+        recordsUpdated: totalUpdated,
+        recordsErrored: totalErrored,
+        errorMessage: (err as Error).message,
+        errorDetails: (err as Error).stack,
+        durationMs: Date.now() - startTime,
+      },
+    });
+  } finally {
+    isSyncRunning = false;
+  }
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/driverSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackDriverResponse, CartrackDriverLinkageResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncDrivers(client: CartrackApiClient): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const drivers = await client.getDrivers() as CartrackDriverResponse[];
+  result.fetched = drivers.length;
+
+  for (const driver of drivers) {
+    const driverId = String(driver.driver_id);
+
+    try {
+      const existing = await prisma.cartrackDriver.findUnique({
+        where: { cartrackDriverId: driverId },
+      });
+
+      const driverData = {
+        firstName: driver.first_name ?? null,
+        lastName: driver.last_name ?? null,
+        employeeNumber: driver.employee_number ?? null,
+        licenseNumber: driver.license_number ?? null,
+        phone: driver.phone ?? null,
+        email: driver.email ?? null,
+        status: driver.status ?? null,
+        rawJson: JSON.stringify(driver),
+        fetchedAt: new Date(),
+      };
+
+      if (existing) {
+        await prisma.cartrackDriver.update({
+          where: { cartrackDriverId: driverId },
+          data: driverData,
+        });
+        result.updated++;
+      } else {
+        await prisma.cartrackDriver.create({
+          data: { cartrackDriverId: driverId, ...driverData },
+        });
+        result.created++;
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error upserting driver ${driverId}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+export async function syncDriverLinkages(client: CartrackApiClient): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const linkages = await client.getDriverLinkages() as CartrackDriverLinkageResponse[];
+  result.fetched = linkages.length;
+
+  for (const linkage of linkages) {
+    const vehicleId = String(linkage.vehicle_id);
+    const driverId = String(linkage.driver_id);
+
+    try {
+      // Ensure the driver exists in our table first
+      const driverExists = await prisma.cartrackDriver.findUnique({
+        where: { cartrackDriverId: driverId },
+      });
+      if (!driverExists) continue;
+
+      const existing = await prisma.cartrackDriverLinkage.findUnique({
+        where: { cartrackVehicleId_cartrackDriverId: { cartrackVehicleId: vehicleId, cartrackDriverId: driverId } },
+      });
+
+      const linkageData = {
+        startDate: linkage.start_date ? new Date(linkage.start_date) : null,
+        endDate: linkage.end_date ? new Date(linkage.end_date) : null,
+        rawJson: JSON.stringify(linkage),
+        fetchedAt: new Date(),
+      };
+
+      if (existing) {
+        await prisma.cartrackDriverLinkage.update({
+          where: { id: existing.id },
+          data: linkageData,
+        });
+        result.updated++;
+      } else {
+        await prisma.cartrackDriverLinkage.create({
+          data: {
+            cartrackVehicleId: vehicleId,
+            cartrackDriverId: driverId,
+            ...linkageData,
+          },
+        });
+        result.created++;
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error upserting driver linkage ${vehicleId}-${driverId}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/fuelSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackFuelResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncFuel(client: CartrackApiClient, sinceDate?: Date): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const fleetVehicles = await prisma.cartrackFleetVehicle.findMany({
+    where: { isActive: true, cartrackVehicleId: { not: null } },
+  });
+
+  if (fleetVehicles.length === 0) return result;
+
+  const dateFrom = sinceDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dateTo = new Date();
+
+  for (const fv of fleetVehicles) {
+    try {
+      const fuelRecords = await client.getFuel({
+        vehicle_id: parseInt(fv.cartrackVehicleId!, 10),
+        date_from: dateFrom.toISOString().split('T')[0],
+        date_to: dateTo.toISOString().split('T')[0],
+      }) as CartrackFuelResponse[];
+
+      result.fetched += fuelRecords.length;
+
+      for (const fuel of fuelRecords) {
+        // Generate a unique ID from available fields
+        const fuelId = fuel.fuel_id
+          ? String(fuel.fuel_id)
+          : `${fv.cartrackVehicleId}-${fuel.timestamp || ''}-${fuel.odometer || ''}`;
+
+        try {
+          const existing = await prisma.cartrackFuelRecord.findUnique({
+            where: { cartrackFuelId: fuelId },
+          });
+
+          const fuelData = {
+            cartrackFleetVehicleId: fv.id,
+            eventTime: fuel.timestamp ? new Date(fuel.timestamp) : null,
+            litres: fuel.fuel_level ?? fuel.total_consumed ?? null,
+            costPerLitre: fuel.cost_per_litre ?? null,
+            totalCost: fuel.total_cost ?? null,
+            odometer: fuel.odometer ?? null,
+            location: fuel.location ?? null,
+            fuelType: fuel.fuel_type ?? null,
+            rawJson: JSON.stringify(fuel),
+            fetchedAt: new Date(),
+          };
+
+          if (existing) {
+            await prisma.cartrackFuelRecord.update({
+              where: { cartrackFuelId: fuelId },
+              data: fuelData,
+            });
+            result.updated++;
+          } else {
+            await prisma.cartrackFuelRecord.create({
+              data: { cartrackFuelId: fuelId, ...fuelData },
+            });
+            result.created++;
+          }
+        } catch (err) {
+          console.error(`[Cartrack] Error upserting fuel record ${fuelId}:`, err);
+          result.errored++;
+        }
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error fetching fuel for vehicle ${fv.licensePlate}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/index.ts
+================================================================================
+export * from './cartrackSync.service';
+export * as cartrackAdmin from './cartrackAdmin.service';
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/tripSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackTripResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncTrips(client: CartrackApiClient, sinceDate?: Date): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const fleetVehicles = await prisma.cartrackFleetVehicle.findMany({
+    where: { isActive: true, cartrackVehicleId: { not: null } },
+  });
+
+  if (fleetVehicles.length === 0) return result;
+
+  const dateFrom = sinceDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dateTo = new Date();
+
+  for (const fv of fleetVehicles) {
+    try {
+      const trips = await client.getTrips({
+        vehicle_id: parseInt(fv.cartrackVehicleId!, 10),
+        date_from: dateFrom.toISOString().split('T')[0],
+        date_to: dateTo.toISOString().split('T')[0],
+      }) as CartrackTripResponse[];
+
+      result.fetched += trips.length;
+
+      for (const trip of trips) {
+        const tripId = String(trip.trip_id);
+
+        try {
+          const existing = await prisma.cartrackTrip.findUnique({
+            where: { cartrackTripId: tripId },
+          });
+
+          const tripData = {
+            cartrackFleetVehicleId: fv.id,
+            startTime: trip.start_time ? new Date(trip.start_time) : null,
+            endTime: trip.end_time ? new Date(trip.end_time) : null,
+            startLatitude: trip.start_latitude ?? null,
+            startLongitude: trip.start_longitude ?? null,
+            endLatitude: trip.end_latitude ?? null,
+            endLongitude: trip.end_longitude ?? null,
+            startAddress: trip.start_address ?? null,
+            endAddress: trip.end_address ?? null,
+            distanceKm: trip.distance ?? null,
+            durationMinutes: trip.duration ?? null,
+            maxSpeed: trip.max_speed ?? null,
+            averageSpeed: trip.average_speed ?? null,
+            idlingDurationMinutes: trip.idle_duration ?? null,
+            fuelUsedLitres: trip.fuel_used ?? null,
+            driverName: trip.driver_name ?? null,
+            rawJson: JSON.stringify(trip),
+            fetchedAt: new Date(),
+          };
+
+          if (existing) {
+            await prisma.cartrackTrip.update({
+              where: { cartrackTripId: tripId },
+              data: tripData,
+            });
+            result.updated++;
+          } else {
+            await prisma.cartrackTrip.create({
+              data: { cartrackTripId: tripId, ...tripData },
+            });
+            result.created++;
+          }
+        } catch (err) {
+          console.error(`[Cartrack] Error upserting trip ${tripId}:`, err);
+          result.errored++;
+        }
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error fetching trips for vehicle ${fv.licensePlate}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/vehicleGroupSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackVehicleGroupResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncVehicleGroups(client: CartrackApiClient): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  const groups = await client.getVehicleGroups() as CartrackVehicleGroupResponse[];
+  result.fetched = groups.length;
+
+  for (const group of groups) {
+    const groupId = String(group.group_id);
+
+    try {
+      const existing = await prisma.cartrackVehicleGroup.findUnique({
+        where: { cartrackGroupId: groupId },
+      });
+
+      const groupData = {
+        name: group.name,
+        description: group.description ?? null,
+        vehicleCount: group.vehicle_count ?? 0,
+        rawJson: JSON.stringify(group),
+        fetchedAt: new Date(),
+      };
+
+      if (existing) {
+        await prisma.cartrackVehicleGroup.update({
+          where: { cartrackGroupId: groupId },
+          data: groupData,
+        });
+        result.updated++;
+      } else {
+        await prisma.cartrackVehicleGroup.create({
+          data: { cartrackGroupId: groupId, ...groupData },
+        });
+        result.created++;
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error upserting vehicle group ${groupId}:`, err);
+      result.errored++;
+    }
+  }
+
+  return result;
+}
+
+
+================================================================================
+FILE: ./server/src/services/cartrack/vehicleSync.service.ts
+================================================================================
+import prisma from '../../config/database';
+import { CartrackApiClient, CartrackVehicleResponse, CartrackVehicleStatusResponse, CartrackPaginatedResponse } from '../../lib/cartrack';
+
+interface SyncResult {
+  fetched: number;
+  created: number;
+  updated: number;
+  errored: number;
+}
+
+export async function syncVehicles(client: CartrackApiClient): Promise<SyncResult> {
+  const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
+
+  // Get all active fleet vehicles we need to match
+  const fleetVehicles = await prisma.cartrackFleetVehicle.findMany({
+    where: { isActive: true },
+    include: { vehicle: true },
+  });
+
+  if (fleetVehicles.length === 0) return result;
+
+  // Fetch all vehicles from Cartrack
+  const cartrackVehicles = await client.getVehicles() as CartrackVehicleResponse[];
+  result.fetched = cartrackVehicles.length;
+
+  // Build a lookup by registration (normalized: uppercase, no spaces)
+  const cartrackByReg = new Map<string, CartrackVehicleResponse>();
+  for (const cv of cartrackVehicles) {
+    if (cv.registration) {
+      cartrackByReg.set(cv.registration.toUpperCase().replace(/\s/g, ''), cv);
+    }
+  }
+
+  // Fetch vehicle status for live telemetry
+  let statusByVehicleId = new Map<number, CartrackVehicleStatusResponse>();
+  try {
+    const statusResponse = await client.getVehicleStatus() as CartrackPaginatedResponse<CartrackVehicleStatusResponse>;
+    const statuses = Array.isArray(statusResponse) ? statusResponse : (statusResponse.data || []);
+    for (const s of statuses) {
+      statusByVehicleId.set(s.vehicle_id, s);
+    }
+  } catch (err) {
+    console.warn('[Cartrack] Failed to fetch vehicle status, continuing without:', (err as Error).message);
+  }
+
+  // Match and sync each fleet vehicle
+  for (const fv of fleetVehicles) {
+    try {
+      const normalizedPlate = fv.licensePlate.toUpperCase().replace(/\s/g, '');
+      const cartrackVehicle = cartrackByReg.get(normalizedPlate);
+
+      if (!cartrackVehicle) {
+        await prisma.cartrackFleetVehicle.update({
+          where: { id: fv.id },
+          data: { syncStatus: 'NOT_FOUND', syncErrorMessage: 'No matching vehicle found in Cartrack' },
+        });
+        continue;
+      }
+
+      const cartrackVehicleId = String(cartrackVehicle.vehicle_id);
+      const status = statusByVehicleId.get(cartrackVehicle.vehicle_id);
+
+      // Update the fleet vehicle with the Cartrack ID
+      await prisma.cartrackFleetVehicle.update({
+        where: { id: fv.id },
+        data: {
+          cartrackVehicleId,
+          syncStatus: 'SYNCED',
+          syncErrorMessage: null,
+          lastSyncedAt: new Date(),
+        },
+      });
+
+      // Upsert vehicle data
+      const vehicleData = {
+        cartrackVehicleId,
+        registrationNumber: cartrackVehicle.registration,
+        make: cartrackVehicle.make || null,
+        model: cartrackVehicle.model || null,
+        year: cartrackVehicle.year ? String(cartrackVehicle.year) : null,
+        odometer: cartrackVehicle.odometer ?? status?.odometer ?? null,
+        lastLatitude: status?.latitude ?? null,
+        lastLongitude: status?.longitude ?? null,
+        lastSpeed: status?.speed ?? null,
+        lastIgnitionStatus: status?.ignition ?? null,
+        lastEventTime: status?.last_event_time ? new Date(status.last_event_time) : null,
+        fuelLevel: status?.fuel_level ?? null,
+        rawVehicleJson: JSON.stringify(cartrackVehicle),
+        rawStatusJson: status ? JSON.stringify(status) : null,
+        fetchedAt: new Date(),
+      };
+
+      const existing = await prisma.cartrackVehicleData.findUnique({
+        where: { cartrackFleetVehicleId: fv.id },
+      });
+
+      if (existing) {
+        await prisma.cartrackVehicleData.update({
+          where: { cartrackFleetVehicleId: fv.id },
+          data: vehicleData,
+        });
+        result.updated++;
+      } else {
+        await prisma.cartrackVehicleData.create({
+          data: { cartrackFleetVehicleId: fv.id, ...vehicleData },
+        });
+        result.created++;
+      }
+
+      // Update our Vehicle's odometer if Cartrack reports higher
+      const cartrackOdometer = vehicleData.odometer;
+      if (cartrackOdometer && cartrackOdometer > (fv.vehicle.currentKilometers || 0)) {
+        await prisma.vehicle.update({
+          where: { id: fv.vehicleId },
+          data: { currentKilometers: Math.round(cartrackOdometer) },
+        });
+      }
+    } catch (err) {
+      console.error(`[Cartrack] Error syncing vehicle ${fv.licensePlate}:`, err);
+      await prisma.cartrackFleetVehicle.update({
+        where: { id: fv.id },
+        data: { syncStatus: 'ERROR', syncErrorMessage: (err as Error).message },
+      }).catch(() => {});
+      result.errored++;
+    }
+  }
+
+  return result;
 }
 
 
@@ -8235,6 +11166,37 @@ export async function createAuditLog(
 
 
 ================================================================================
+FILE: ./server/src/utils/encryption.ts
+================================================================================
+import crypto from 'crypto';
+
+const ALGORITHM = 'aes-256-cbc';
+const IV_LENGTH = 16;
+
+function deriveKey(key: string): Buffer {
+  return crypto.createHash('sha256').update(key).digest();
+}
+
+export function encrypt(text: string, key: string): string {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, deriveKey(key), iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return iv.toString('hex') + ':' + encrypted;
+}
+
+export function decrypt(encryptedText: string, key: string): string {
+  const [ivHex, encrypted] = encryptedText.split(':');
+  if (!ivHex || !encrypted) throw new Error('Invalid encrypted text format');
+  const iv = Buffer.from(ivHex, 'hex');
+  const decipher = crypto.createDecipheriv(ALGORITHM, deriveKey(key), iv);
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+
+================================================================================
 FILE: ./server/src/utils/errors.ts
 ================================================================================
 export class AppError extends Error {
@@ -8409,6 +11371,41 @@ export const refreshSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
+
+
+================================================================================
+FILE: ./server/src/validators/cartrack.validator.ts
+================================================================================
+import { z } from 'zod';
+
+export const updateCartrackConfigSchema = z.object({
+  apiBaseUrl: z.string().url().optional(),
+  apiUsername: z.string().min(1).optional(),
+  apiPassword: z.string().min(1).optional(),
+  isEnabled: z.boolean().optional(),
+  syncIntervalMinutes: z.number().int().min(5).max(1440).optional(),
+  vehicleSyncEnabled: z.boolean().optional(),
+  tripSyncEnabled: z.boolean().optional(),
+  driverSyncEnabled: z.boolean().optional(),
+  alertSyncEnabled: z.boolean().optional(),
+  fuelSyncEnabled: z.boolean().optional(),
+});
+
+export const addFleetVehicleSchema = z.object({
+  vehicleId: z.string().min(1),
+  licensePlate: z.string().min(1),
+});
+
+export const bulkAddFleetVehiclesSchema = z.object({
+  vehicles: z.array(z.object({
+    vehicleId: z.string().min(1),
+    licensePlate: z.string().min(1),
+  })).min(1),
+});
+
+export const triggerSyncSchema = z.object({
+  syncType: z.enum(['FULL', 'VEHICLES', 'TRIPS', 'DRIVERS', 'DRIVER_LINKAGE', 'ALERTS', 'FUEL', 'VEHICLE_GROUPS']),
+});
 
 
 ================================================================================
