@@ -14,6 +14,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import ServiceTypesPage from './pages/ServiceTypesPage';
 import ServiceIntervalsPage from './pages/ServiceIntervalsPage';
 import ServiceProviderPortalPage from './pages/ServiceProviderPortalPage';
+import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
 
 export default function App() {
   return (
@@ -50,6 +51,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <ServiceIntervalsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/cartrack"
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <CartrackIntegrationPage />
               </ProtectedRoute>
             }
           />

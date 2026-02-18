@@ -73,6 +73,7 @@ model Vehicle {
   assignments             Assignment[]
   serviceRecords          ServiceRecord[]
   vehicleServiceIntervals VehicleServiceInterval[]
+  cartrackFleetVehicle    CartrackFleetVehicle?
 }
 
 model Driver {
@@ -283,4 +284,228 @@ model AuditLog {
 
   @@index([userId])
   @@index([entityType, entityId])
+}
+
+// ============================================================
+// CARTRACK INTEGRATION MODELS
+// ============================================================
+
+model CartrackConfig {
+  id                    String   @id @default(uuid())
+  apiBaseUrl            String   @default("https://fleetapi-za.cartrack.com/rest/")
+  apiUsername            String   @default("")
+  apiPasswordEncrypted  String   @default("")
+  isEnabled             Boolean  @default(false)
+  syncIntervalMinutes   Int      @default(15)
+  vehicleSyncEnabled    Boolean  @default(true)
+  tripSyncEnabled       Boolean  @default(true)
+  driverSyncEnabled     Boolean  @default(true)
+  alertSyncEnabled      Boolean  @default(true)
+  fuelSyncEnabled       Boolean  @default(true)
+  lastHealthCheck       DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model CartrackFleetVehicle {
+  id                String    @id @default(uuid())
+  vehicleId         String    @unique
+  licensePlate      String    @unique
+  cartrackVehicleId String?   @unique
+  isActive          Boolean   @default(true)
+  lastSyncedAt      DateTime?
+  syncStatus        String    @default("PENDING")
+  syncErrorMessage  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  vehicle             Vehicle               @relation(fields: [vehicleId], references: [id])
+  cartrackVehicleData CartrackVehicleData?
+  cartrackTrips       CartrackTrip[]
+  cartrackAlerts      CartrackAlert[]
+  cartrackFuelRecords CartrackFuelRecord[]
+
+  @@index([vehicleId])
+  @@index([licensePlate])
+  @@index([cartrackVehicleId])
+}
+
+model CartrackVehicleData {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String    @unique
+  cartrackVehicleId       String
+  registrationNumber      String?
+  make                    String?
+  model                   String?
+  year                    String?
+  odometer                Float?
+  lastLatitude            Float?
+  lastLongitude           Float?
+  lastSpeed               Float?
+  lastIgnitionStatus      String?
+  lastEventTime           DateTime?
+  fuelLevel               Float?
+  rawVehicleJson          String
+  rawStatusJson           String?
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([cartrackVehicleId])
+}
+
+model CartrackTrip {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackTripId          String    @unique
+  startTime               DateTime?
+  endTime                 DateTime?
+  startLatitude           Float?
+  startLongitude          Float?
+  endLatitude             Float?
+  endLongitude            Float?
+  startAddress            String?
+  endAddress              String?
+  distanceKm              Float?
+  durationMinutes         Float?
+  maxSpeed                Float?
+  averageSpeed            Float?
+  idlingDurationMinutes   Float?
+  fuelUsedLitres          Float?
+  driverName              String?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([startTime])
+  @@index([endTime])
+}
+
+model CartrackDriver {
+  id                String    @id @default(uuid())
+  cartrackDriverId  String    @unique
+  firstName         String?
+  lastName          String?
+  employeeNumber    String?
+  licenseNumber     String?
+  phone             String?
+  email             String?
+  status            String?
+  rawJson           String
+  fetchedAt         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  driverLinkages CartrackDriverLinkage[]
+
+  @@index([cartrackDriverId])
+  @@index([employeeNumber])
+}
+
+model CartrackDriverLinkage {
+  id                String    @id @default(uuid())
+  cartrackVehicleId String
+  cartrackDriverId  String
+  startDate         DateTime?
+  endDate           DateTime?
+  rawJson           String
+  fetchedAt         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  cartrackDriver CartrackDriver @relation(fields: [cartrackDriverId], references: [cartrackDriverId])
+
+  @@unique([cartrackVehicleId, cartrackDriverId])
+  @@index([cartrackVehicleId])
+  @@index([cartrackDriverId])
+}
+
+model CartrackAlert {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackAlertId         String    @unique
+  alertType               String?
+  severity                String?
+  message                 String?
+  latitude                Float?
+  longitude               Float?
+  eventTime               DateTime?
+  isAcknowledged          Boolean   @default(false)
+  acknowledgedBy          String?
+  acknowledgedAt          DateTime?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([alertType])
+  @@index([eventTime])
+}
+
+model CartrackFuelRecord {
+  id                      String    @id @default(uuid())
+  cartrackFleetVehicleId  String
+  cartrackFuelId          String    @unique
+  eventTime               DateTime?
+  litres                  Float?
+  costPerLitre            Float?
+  totalCost               Float?
+  odometer                Float?
+  location                String?
+  fuelType                String?
+  rawJson                 String
+  fetchedAt               DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([eventTime])
+}
+
+model CartrackVehicleGroup {
+  id              String    @id @default(uuid())
+  cartrackGroupId String    @unique
+  name            String
+  description     String?
+  vehicleCount    Int       @default(0)
+  rawJson         String
+  fetchedAt       DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([cartrackGroupId])
+}
+
+model CartrackSyncLog {
+  id                String    @id @default(uuid())
+  syncType          String
+  status            String
+  triggeredBy       String
+  triggeredByUserId String?
+  startedAt         DateTime  @default(now())
+  completedAt       DateTime?
+  recordsFetched    Int       @default(0)
+  recordsCreated    Int       @default(0)
+  recordsUpdated    Int       @default(0)
+  recordsErrored    Int       @default(0)
+  errorMessage      String?
+  errorDetails      String?
+  durationMs        Int?
+  createdAt         DateTime  @default(now())
+
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
 }

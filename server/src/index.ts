@@ -18,6 +18,8 @@ import serviceIntervalRoutes from './routes/serviceIntervals.routes';
 import uploadRoutes from './routes/uploads.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import portalRoutes from './routes/portal.routes';
+import cartrackRoutes from './routes/cartrack.routes';
+import { startScheduler } from './lib/cartrack/syncScheduler';
 
 const app = express();
 
@@ -42,6 +44,7 @@ app.use('/api/v1/service-intervals', serviceIntervalRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/portal', portalRoutes);
+app.use('/api/v1/cartrack', cartrackRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -51,6 +54,7 @@ ensureUploadDir();
 
 app.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
+  startScheduler().catch((err) => console.error('Failed to start Cartrack scheduler:', err));
 });
 
 export default app;

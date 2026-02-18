@@ -8,6 +8,7 @@ import {
   HiWrenchScrewdriver,
   HiCog6Tooth,
   HiBuildingOffice2,
+  HiSignal,
 } from 'react-icons/hi2';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -59,6 +60,9 @@ export default function Sidebar() {
             </NavLink>
             <NavLink to="/admin/service-intervals" className={navLinkClass}>
               <HiCog6Tooth className="text-lg" /> Intervals
+            </NavLink>
+            <NavLink to="/admin/cartrack" className={navLinkClass}>
+              <HiSignal className="text-lg" /> Cartrack
             </NavLink>
           </>
         )}
