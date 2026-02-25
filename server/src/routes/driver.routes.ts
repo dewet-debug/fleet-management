@@ -14,6 +14,6 @@ router.get('/:id/costs', driverController.getDriverCosts);
 router.get('/:id', driverController.getDriverById);
 router.post('/', authorize('ADMIN', 'FLEET_MANAGER'), validate(createDriverSchema), driverController.createDriver);
 router.patch('/:id', authorize('ADMIN', 'FLEET_MANAGER'), validate(updateDriverSchema), driverController.updateDriver);
-router.delete('/:id', authorize('ADMIN'), driverController.deleteDriver);
+router.delete('/:id', authorize('ADMIN', 'FLEET_MANAGER'), driverController.deleteDriver);
 
 export default router;

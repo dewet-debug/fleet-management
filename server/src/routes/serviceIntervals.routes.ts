@@ -10,8 +10,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', serviceController.listServiceIntervals);
-router.post('/', authorize('ADMIN'), validate(createServiceIntervalSchema), serviceController.createServiceInterval);
-router.patch('/:id', authorize('ADMIN'), validate(updateServiceIntervalSchema), serviceController.updateServiceInterval);
-router.delete('/:id', authorize('ADMIN'), serviceController.deleteServiceInterval);
+router.post('/', authorize('ADMIN', 'FLEET_MANAGER'), validate(createServiceIntervalSchema), serviceController.createServiceInterval);
+router.patch('/:id', authorize('ADMIN', 'FLEET_MANAGER'), validate(updateServiceIntervalSchema), serviceController.updateServiceInterval);
+router.delete('/:id', authorize('ADMIN', 'FLEET_MANAGER'), serviceController.deleteServiceInterval);
 
 export default router;
