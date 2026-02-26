@@ -99,6 +99,18 @@ export async function transitionServiceRecord(req: Request, res: Response, next:
   } catch (error) { next(error); }
 }
 
+export async function bulkDeleteServiceRecords(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const result = await serviceService.bulkDeleteServiceRecords(req.body.ids, user.id);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) { next(error); }
+}
+
 // Photos
 export async function deletePhoto(req: Request, res: Response, next: NextFunction) {
   try {

@@ -24,3 +24,7 @@ export const updateDriverSchema = z.object({
   notes: z.string().optional(),
   status: DriverStatus.optional(),
 });
+
+export const bulkDeleteDriversSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one driver ID is required'),
+});

@@ -6,6 +6,7 @@ import {
   createDriver,
   updateDriver,
   deleteDriver,
+  bulkDeleteDrivers,
   getDriverCosts,
 } from '../api/drivers';
 import type { DriversParams, Driver } from '../api/drivers';

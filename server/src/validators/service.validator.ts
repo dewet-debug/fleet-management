@@ -71,3 +71,7 @@ export const transitionServiceSchema = z.object({
   action: z.enum(['SCHEDULE', 'AUTHORIZE', 'START', 'COMPLETE', 'APPROVE', 'RETURN']),
   notes: z.string().optional(),
 });
+
+export const bulkDeleteServiceRecordsSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one service record ID is required'),
+});

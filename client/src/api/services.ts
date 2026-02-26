@@ -39,6 +39,11 @@ export const transitionService = async (id: string, transitionData: TransitionDa
   return data.data;
 };
 
+export const bulkDeleteServices = async (ids: string[]): Promise<{ deleted: string[]; failed: { id: string; reason: string }[] }> => {
+  const { data } = await client.post('/services/bulk-delete', { ids });
+  return data.data;
+};
+
 export const getServiceTypes = async (params?: any) => {
   const { data } = await client.get('/service-types', { params });
   return data.data;

@@ -3,7 +3,7 @@ import * as vehicleController from '../controllers/vehicle.controller';
 import { authenticate } from '../middleware/auth';
 import { authorize } from '../middleware/rbac';
 import { validate } from '../middleware/validate';
-import { createVehicleSchema, updateVehicleSchema, updateKilometersSchema } from '../validators/vehicle.validator';
+import { createVehicleSchema, updateVehicleSchema, updateKilometersSchema, bulkDeleteVehiclesSchema } from '../validators/vehicle.validator';
 
 const router = Router();
 
@@ -12,6 +12,7 @@ router.use(authenticate);
 router.get('/', vehicleController.listVehicles);
 router.get('/:id/costs', vehicleController.getVehicleCosts);
 router.get('/:id', vehicleController.getVehicleById);
+router.post('/bulk-delete', authorize('ADMIN', 'FLEET_MANAGER'), validate(bulkDeleteVehiclesSchema), vehicleController.bulkDeleteVehicles);
 router.post('/', authorize('ADMIN', 'FLEET_MANAGER'), validate(createVehicleSchema), vehicleController.createVehicle);
 router.patch('/:id', authorize('ADMIN', 'FLEET_MANAGER'), validate(updateVehicleSchema), vehicleController.updateVehicle);
 router.delete('/:id', authorize('ADMIN', 'FLEET_MANAGER'), vehicleController.deleteVehicle);

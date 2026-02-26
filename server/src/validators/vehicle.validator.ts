@@ -66,3 +66,7 @@ export const updateVehicleSchema = z.object({
 export const updateKilometersSchema = z.object({
   kilometers: z.number().int().positive('Kilometers must be a positive integer'),
 });
+
+export const bulkDeleteVehiclesSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one vehicle ID is required'),
+});

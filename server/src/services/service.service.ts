@@ -292,6 +292,42 @@ export async function deletePhoto(id: string, userId: string) {
   return photo;
 }
 
+// Service Record deletion
+export async function deleteServiceRecord(id: string, userId: string) {
+  const existing = await prisma.serviceRecord.findUnique({ where: { id } });
+  if (!existing) throw new NotFoundError('Service record not found');
+
+  await prisma.serviceStatusHistory.deleteMany({ where: { serviceRecordId: id } });
+  await prisma.photo.deleteMany({ where: { serviceRecordId: id } });
+  await prisma.serviceRecord.delete({ where: { id } });
+  await createAuditLog(prisma, userId, 'DELETE', 'ServiceRecord', id);
+}
+
+export async function bulkDeleteServiceRecords(ids: string[], userId: string) {
+  const deleted: string[] = [];
+  const failed: { id: string; reason: string }[] = [];
+
+  for (const id of ids) {
+    try {
+      const existing = await prisma.serviceRecord.findUnique({ where: { id } });
+      if (!existing) {
+        failed.push({ id, reason: 'Service record not found' });
+        continue;
+      }
+
+      await prisma.serviceStatusHistory.deleteMany({ where: { serviceRecordId: id } });
+      await prisma.photo.deleteMany({ where: { serviceRecordId: id } });
+      await prisma.serviceRecord.delete({ where: { id } });
+      await createAuditLog(prisma, userId, 'DELETE', 'ServiceRecord', id);
+      deleted.push(id);
+    } catch {
+      failed.push({ id, reason: 'Unexpected error' });
+    }
+  }
+
+  return { deleted, failed };
+}
+
 // Driver cost analysis
 export async function getDriverCosts(driverId: string, period: 'weekly' | 'monthly') {
   const records = await prisma.serviceRecord.findMany({

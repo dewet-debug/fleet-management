@@ -83,3 +83,34 @@ export async function deleteDriver(id: string, userId: string) {
   await prisma.driver.delete({ where: { id } });
   await createAuditLog(prisma, userId, 'DELETE', 'Driver', id);
 }
+
+export async function bulkDeleteDrivers(ids: string[], userId: string) {
+  const deleted: string[] = [];
+  const failed: { id: string; reason: string }[] = [];
+
+  for (const id of ids) {
+    try {
+      const existing = await prisma.driver.findUnique({ where: { id } });
+      if (!existing) {
+        failed.push({ id, reason: 'Driver not found' });
+        continue;
+      }
+
+      const activeAssignment = await prisma.assignment.findFirst({
+        where: { driverId: id, status: 'ACTIVE' },
+      });
+      if (activeAssignment) {
+        failed.push({ id, reason: 'Cannot delete driver with active assignment' });
+        continue;
+      }
+
+      await prisma.driver.delete({ where: { id } });
+      await createAuditLog(prisma, userId, 'DELETE', 'Driver', id);
+      deleted.push(id);
+    } catch {
+      failed.push({ id, reason: 'Unexpected error' });
+    }
+  }
+
+  return { deleted, failed };
+}

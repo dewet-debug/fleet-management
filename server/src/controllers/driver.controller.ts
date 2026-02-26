@@ -76,6 +76,20 @@ export async function deleteDriver(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function bulkDeleteDrivers(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const result = await driverService.bulkDeleteDrivers(req.body.ids, user.id);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getDriverCosts(req: Request, res: Response, next: NextFunction) {
   try {
     const period = (req.query.period as string) === 'monthly' ? 'monthly' : 'weekly';

@@ -54,6 +54,11 @@ export const deleteDriver = async (id: string): Promise<void> => {
   await client.delete(`/drivers/${id}`);
 };
 
+export const bulkDeleteDrivers = async (ids: string[]): Promise<{ deleted: string[]; failed: { id: string; reason: string }[] }> => {
+  const { data } = await client.post('/drivers/bulk-delete', { ids });
+  return data.data;
+};
+
 export const getDriverCosts = async (id: string, period: 'weekly' | 'monthly' = 'weekly') => {
   const { data } = await client.get(`/drivers/${id}/costs`, { params: { period } });
   return data.data;

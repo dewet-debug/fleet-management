@@ -76,6 +76,20 @@ export async function deleteVehicle(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function bulkDeleteVehicles(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { user } = req as RequestWithUser;
+    const result = await vehicleService.bulkDeleteVehicles(req.body.ids, user.id);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getVehicleCosts(req: Request, res: Response, next: NextFunction) {
   try {
     const result = await vehicleService.getVehicleCosts(req.params.id);

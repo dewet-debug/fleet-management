@@ -79,6 +79,11 @@ export const updateKilometers = async (id: string, kilometers: number): Promise<
   return data.data;
 };
 
+export const bulkDeleteVehicles = async (ids: string[]): Promise<{ deleted: string[]; failed: { id: string; reason: string }[] }> => {
+  const { data } = await client.post('/vehicles/bulk-delete', { ids });
+  return data.data;
+};
+
 export async function getVehicleCosts(id: string) {
   const { data } = await client.get(`/vehicles/${id}/costs`);
   return data.data;
