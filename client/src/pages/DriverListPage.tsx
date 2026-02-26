@@ -22,7 +22,7 @@ export default function DriverListPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
-  const { data, isLoading } = useDrivers({ page, limit: 20, search, status: statusFilter || undefined });
+  const { data, isLoading } = useDrivers({ page, limit: 1000, search, status: statusFilter || undefined });
   const createDriver = useCreateDriver();
 
   const handleCreate = async (e: React.FormEvent) => {

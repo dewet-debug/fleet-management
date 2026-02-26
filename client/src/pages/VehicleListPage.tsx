@@ -29,7 +29,7 @@ export default function VehicleListPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
-  const { data, isLoading } = useVehicles({ page, limit: 20, search, status: statusFilter || undefined });
+  const { data, isLoading } = useVehicles({ page, limit: 1000, search, status: statusFilter || undefined });
   const createVehicle = useCreateVehicle();
 
   const handleCreate = async (e: React.FormEvent) => {
