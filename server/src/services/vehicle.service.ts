@@ -99,8 +99,92 @@ export async function deleteVehicle(id: string, userId: string) {
   });
   if (activeAssignment) throw new BadRequestError('Cannot delete vehicle with active assignment');
 
-  await prisma.vehicle.delete({ where: { id } });
+  await prisma.$transaction(async (tx) => {
+    // Delete Cartrack data chain (deepest children first)
+    const cartrackFleetVehicle = await tx.cartrackFleetVehicle.findUnique({ where: { vehicleId: id } });
+    if (cartrackFleetVehicle) {
+      await tx.cartrackVehicleData.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+      await tx.cartrackTrip.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+      await tx.cartrackAlert.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+      await tx.cartrackFuelRecord.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+      await tx.cartrackFleetVehicle.delete({ where: { vehicleId: id } });
+    }
+
+    // Delete service record children, then service records
+    const serviceRecordIds = (await tx.serviceRecord.findMany({
+      where: { vehicleId: id }, select: { id: true },
+    })).map((r) => r.id);
+    if (serviceRecordIds.length > 0) {
+      await tx.serviceStatusHistory.deleteMany({ where: { serviceRecordId: { in: serviceRecordIds } } });
+      await tx.photo.deleteMany({ where: { serviceRecordId: { in: serviceRecordIds } } });
+    }
+    await tx.serviceRecord.deleteMany({ where: { vehicleId: id } });
+
+    // Delete vehicle service intervals
+    await tx.vehicleServiceInterval.deleteMany({ where: { vehicleId: id } });
+
+    // Delete all assignments (inactive/ended ones — active already blocked above)
+    await tx.assignment.deleteMany({ where: { vehicleId: id } });
+
+    // Finally delete the vehicle
+    await tx.vehicle.delete({ where: { id } });
+  });
+
   await createAuditLog(prisma, userId, 'DELETE', 'Vehicle', id);
+}
+
+export async function bulkDeleteVehicles(ids: string[], userId: string) {
+  const deleted: string[] = [];
+  const failed: { id: string; reason: string }[] = [];
+
+  for (const id of ids) {
+    try {
+      const existing = await prisma.vehicle.findUnique({ where: { id } });
+      if (!existing) {
+        failed.push({ id, reason: 'Vehicle not found' });
+        continue;
+      }
+
+      const activeAssignment = await prisma.assignment.findFirst({
+        where: { vehicleId: id, status: 'ACTIVE' },
+      });
+      if (activeAssignment) {
+        failed.push({ id, reason: 'Cannot delete vehicle with active assignment' });
+        continue;
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const cartrackFleetVehicle = await tx.cartrackFleetVehicle.findUnique({ where: { vehicleId: id } });
+        if (cartrackFleetVehicle) {
+          await tx.cartrackVehicleData.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+          await tx.cartrackTrip.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+          await tx.cartrackAlert.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+          await tx.cartrackFuelRecord.deleteMany({ where: { cartrackFleetVehicleId: cartrackFleetVehicle.id } });
+          await tx.cartrackFleetVehicle.delete({ where: { vehicleId: id } });
+        }
+
+        const serviceRecordIds = (await tx.serviceRecord.findMany({
+          where: { vehicleId: id }, select: { id: true },
+        })).map((r) => r.id);
+        if (serviceRecordIds.length > 0) {
+          await tx.serviceStatusHistory.deleteMany({ where: { serviceRecordId: { in: serviceRecordIds } } });
+          await tx.photo.deleteMany({ where: { serviceRecordId: { in: serviceRecordIds } } });
+        }
+        await tx.serviceRecord.deleteMany({ where: { vehicleId: id } });
+
+        await tx.vehicleServiceInterval.deleteMany({ where: { vehicleId: id } });
+        await tx.assignment.deleteMany({ where: { vehicleId: id } });
+        await tx.vehicle.delete({ where: { id } });
+      });
+
+      await createAuditLog(prisma, userId, 'DELETE', 'Vehicle', id);
+      deleted.push(id);
+    } catch {
+      failed.push({ id, reason: 'Unexpected error' });
+    }
+  }
+
+  return { deleted, failed };
 }
 
 export async function updateKilometers(id: string, mileage: number, userId: string) {

@@ -32,6 +32,16 @@ export function errorHandler(
         });
         return;
       }
+      case 'P2003': {
+        const field = (err.meta?.field_name as string) || 'unknown';
+        res.status(409).json({
+          error: {
+            message: `Cannot delete record because it is referenced by other records (${field})`,
+            statusCode: 409,
+          },
+        });
+        return;
+      }
       case 'P2025': {
         res.status(404).json({
           error: {

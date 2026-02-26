@@ -32,17 +32,19 @@ export default function VehicleDetailPage() {
     e.preventDefault();
     try {
       await updateVehicle.mutateAsync({ id: id!, data: editForm });
-      toast.success('Vehicle updated');
       setShowEdit(false);
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Update failed'); }
+    } catch {
+      // Toast is handled by the useUpdateVehicle hook
+    }
   };
 
   const handleDelete = async () => {
     try {
       await deleteVehicle.mutateAsync(id!);
-      toast.success('Vehicle deleted');
       navigate('/vehicles');
-    } catch (err: any) { toast.error(err.response?.data?.message || 'Delete failed'); }
+    } catch {
+      // Toast is handled by the useDeleteVehicle hook
+    }
   };
 
   const handleKilometersUpdate = async () => {

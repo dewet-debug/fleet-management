@@ -6,6 +6,7 @@ import {
   createVehicle,
   updateVehicle,
   deleteVehicle,
+  bulkDeleteVehicles,
   updateKilometers,
   getVehicleCosts,
 } from '../api/vehicles';
@@ -65,8 +66,28 @@ export const useDeleteVehicle = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       toast.success('Vehicle deleted successfully');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to delete vehicle');
+    },
+  });
+};
+
+export const useBulkDeleteVehicles = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => bulkDeleteVehicles(ids),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      const msg = `${data.deleted.length} deleted` + (data.failed.length > 0 ? `, ${data.failed.length} failed` : '');
+      if (data.failed.length > 0) {
+        toast.error(`Bulk delete: ${msg}`);
+      } else {
+        toast.success(`Bulk delete: ${msg}`);
+      }
+    },
     onError: () => {
-      toast.error('Failed to delete vehicle');
+      toast.error('Failed to bulk delete vehicles');
     },
   });
 };
