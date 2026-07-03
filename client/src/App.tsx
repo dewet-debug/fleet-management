@@ -21,6 +21,7 @@ import BoltTripsPage from './pages/BoltTripsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
 import FleetMapPage from './pages/FleetMapPage';
 import ProfitabilityPage from './pages/ProfitabilityPage';
+import DriverPerformancePage from './pages/DriverPerformancePage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="live-map" element={<FleetMapPage />} />
           <Route path="profitability" element={<ProfitabilityPage />} />
+          <Route path="driver-performance" element={<DriverPerformancePage />} />
           <Route path="vehicles" element={<VehicleListPage />} />
           <Route path="vehicles/:id" element={<VehicleDetailPage />} />
           <Route path="drivers" element={<DriverListPage />} />

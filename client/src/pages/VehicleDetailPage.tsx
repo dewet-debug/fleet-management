@@ -401,6 +401,18 @@ export default function VehicleDetailPage() {
             <Select label="Currency" value={editForm.currency || 'ZAR'}
               onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
               options={CURRENCY_OPTIONS} />
+            <Input
+              label="Monthly lease cost"
+              type="number"
+              value={editForm.monthlyLeaseCost ?? ''}
+              onChange={(e) => setEditForm({ ...editForm, monthlyLeaseCost: e.target.value === '' ? null : Number(e.target.value) })}
+            />
+            <Input
+              label="Insurance premium (monthly)"
+              type="number"
+              value={editForm.premiumAmount ?? ''}
+              onChange={(e) => setEditForm({ ...editForm, premiumAmount: e.target.value === '' ? null : Number(e.target.value) })}
+            />
           </div>
           <Input label="Notes" value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
           <div className="flex justify-end gap-2">
