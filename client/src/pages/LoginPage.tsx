@@ -2,7 +2,6 @@ import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, Card } from '../components/ui';
-import { HiOutlineBolt } from 'react-icons/hi2';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,13 +29,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-paper-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         {/* wordmark — matches Sidebar */}
-        <div className="flex items-center justify-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-control bg-primary-500 text-white">
-            <HiOutlineBolt className="text-xl" />
-          </span>
+        <div className="flex items-center justify-center gap-3">
+          <img
+            src="/assemble49-mark.png"
+            alt="Assemble49"
+            className="h-12 w-12 shrink-0 rounded-card object-cover ring-1 ring-paper-line"
+          />
           <div className="leading-tight">
-            <p className="text-base font-bold text-ink">MNC Fleet</p>
-            <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Console</p>
+            <p className="text-lg font-bold text-ink">Assemble49</p>
+            <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Fleet Console</p>
           </div>
         </div>
 

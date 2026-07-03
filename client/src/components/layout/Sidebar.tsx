@@ -13,6 +13,7 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineBuildingOffice2,
   HiOutlineClock,
+  HiOutlineMapPin,
 } from 'react-icons/hi2';
 import type { IconType } from 'react-icons';
 
@@ -52,13 +53,15 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-30 flex h-screen w-[236px] flex-col border-r border-paper-line bg-paper-card">
       {/* wordmark */}
-      <div className="flex items-center gap-2 px-5 py-[18px] border-b border-paper-hair">
-        <span className="grid h-7 w-7 place-items-center rounded-control bg-primary-500 text-white">
-          <HiOutlineBolt className="text-base" />
-        </span>
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-paper-hair">
+        <img
+          src="/assemble49-mark.png"
+          alt="Assemble49"
+          className="h-9 w-9 shrink-0 rounded-control object-cover ring-1 ring-paper-line"
+        />
         <div className="leading-tight">
-          <p className="text-sm font-bold text-ink">MNC Fleet</p>
-          <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Console</p>
+          <p className="text-sm font-bold text-ink">Assemble49</p>
+          <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Fleet Console</p>
         </div>
       </div>
 
@@ -73,6 +76,7 @@ export default function Sidebar() {
               <NavItem to="/assignments" icon={HiOutlineLink} label="Assignments" />
               <NavItem to="/services" icon={HiOutlineWrench} label="Services" />
               <NavItem to="/bolt-trips" icon={HiOutlineReceiptPercent} label="Bolt Trips" />
+              <NavItem to="/live-map" icon={HiOutlineMapPin} label="Live Map" />
               {(isAdmin || isManager) && (
                 <NavItem to="/bulk-upload" icon={HiOutlineArrowUpTray} label="Bulk Upload" />
               )}

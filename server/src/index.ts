@@ -22,6 +22,7 @@ import cartrackRoutes from './routes/cartrack.routes';
 import bulkUploadRoutes from './routes/bulkUpload.routes';
 import a49Routes from './routes/a49.routes';
 import boltRoutes from './routes/bolt.routes';
+import trackingRoutes from './routes/tracking.routes';
 import { startScheduler } from './lib/cartrack/syncScheduler';
 
 const app = express();
@@ -51,6 +52,7 @@ app.use('/api/v1/cartrack', cartrackRoutes);
 app.use('/api/v1/bulk-upload', bulkUploadRoutes);
 app.use('/api/v1/a49', a49Routes);
 app.use('/api/v1/bolt', boltRoutes);
+app.use('/api/v1/tracking', trackingRoutes);
 
 // Error handling
 app.use(errorHandler);

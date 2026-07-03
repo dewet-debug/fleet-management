@@ -18,6 +18,7 @@ import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
 import A49IntegrationPage from './pages/A49IntegrationPage';
 import BoltTripsPage from './pages/BoltTripsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
+import FleetMapPage from './pages/FleetMapPage';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="live-map" element={<FleetMapPage />} />
           <Route path="vehicles" element={<VehicleListPage />} />
           <Route path="vehicles/:id" element={<VehicleDetailPage />} />
           <Route path="drivers" element={<DriverListPage />} />

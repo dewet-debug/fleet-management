@@ -1,4 +1,4 @@
-/* MNC Fleet — Signal base layer.
+/* Assemble49 Fleet — Signal base layer.
    Only what can't be a utility class lives here: the font faces + body reset.
    Everything else is Tailwind tokens (see tailwind.config.js). */
 
@@ -13,8 +13,8 @@
   /* Raw values (not @apply of custom theme colours) so the base layer never
      hits a Vite/Tailwind HMR re-transform race on the paper/ink tokens. */
   body {
-    background-color: #f7f7f4; /* paper-bg */
-    color: #1c1c1a;            /* ink */
+    background-color: #f4f5f8; /* paper-bg */
+    color: #1e1e2a;            /* ink */
     font-family: "IBM Plex Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
