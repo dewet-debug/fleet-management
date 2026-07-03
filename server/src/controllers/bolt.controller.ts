@@ -1,8 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
 import * as boltQuery from '../services/bolt/boltTripQuery.service';
+import { getBoltStatus, startBoltTripsSync } from '../services/bolt/boltSyncRunner.service';
 
 function matchedParam(v: unknown): 'matched' | 'unmatched' | undefined {
   return v === 'matched' || v === 'unmatched' ? v : undefined;
+}
+
+export async function status(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json({ success: true, data: await getBoltStatus() });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function triggerSync(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await startBoltTripsSync({
+      dateFrom: req.body?.dateFrom,
+      dateTo: req.body?.dateTo,
+      triggeredBy: 'console',
+    });
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    if (error?.status) return res.status(error.status).json({ success: false, error: { message: error.message } });
+    next(error);
+  }
 }
 
 export async function listTrips(req: Request, res: Response, next: NextFunction) {

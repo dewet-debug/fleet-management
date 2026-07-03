@@ -111,3 +111,23 @@ export async function fetchBoltSyncLogs(params: { page?: number; limit?: number;
   const { data } = await client.get<BoltPaginatedResponse<BoltSyncLog>>('/bolt/sync-logs', { params });
   return data;
 }
+
+export interface BoltStatus {
+  connected: boolean;
+  tokenUrl: string;
+  scope: string;
+  totalTrips: number;
+  latestTripAt: string | null;
+  lastSync: { id: string; status: string; startedAt: string; completedAt: string | null } | null;
+  running: boolean;
+}
+
+export async function fetchBoltStatus() {
+  const { data } = await client.get<{ success: boolean; data: BoltStatus }>('/bolt/status');
+  return data.data;
+}
+
+export async function triggerBoltSync(params: { dateFrom: string; dateTo: string }) {
+  const { data } = await client.post<{ success: boolean; data: { syncLogId: string } }>('/bolt/trips/sync', params);
+  return data.data;
+}

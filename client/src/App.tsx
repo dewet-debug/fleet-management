@@ -16,6 +16,7 @@ import ServiceIntervalsPage from './pages/ServiceIntervalsPage';
 import ServiceProviderPortalPage from './pages/ServiceProviderPortalPage';
 import CartrackIntegrationPage from './pages/CartrackIntegrationPage';
 import A49IntegrationPage from './pages/A49IntegrationPage';
+import BoltIntegrationPage from './pages/BoltIntegrationPage';
 import BoltTripsPage from './pages/BoltTripsPage';
 import BulkUploadPage from './pages/BulkUploadPage';
 import FleetMapPage from './pages/FleetMapPage';
@@ -82,6 +83,14 @@ export default function App() {
             element={
               <ProtectedRoute roles={['ADMIN', 'FLEET_MANAGER']}>
                 <A49IntegrationPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/bolt"
+            element={
+              <ProtectedRoute roles={['ADMIN', 'FLEET_MANAGER']}>
+                <BoltIntegrationPage />
               </ProtectedRoute>
             }
           />
