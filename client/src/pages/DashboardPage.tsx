@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   useDashboardMetrics,
@@ -6,6 +6,7 @@ import {
 } from '../hooks/useDashboard';
 import { useBoltTripsSummary, useBoltTrips, useBoltSyncLogs, useBoltAnalytics } from '../hooks/useBolt';
 import { Card, Badge, StatusBadge, Table, LoadingSpinner } from '../components/ui';
+import { DateRangePicker, last30DayRange } from '../components/ui/DateRangePicker';
 import type { BoltTrip } from '../api/bolt';
 import { zar, int, lastSynced } from '../theme/format';
 import { Sparkline } from '../components/charts/Sparkline';
@@ -25,16 +26,11 @@ import {
   HiOutlineLink,
 } from 'react-icons/hi2';
 
-/** Last-30-days window, computed client-side for the Bolt figures. */
-function last30Days() {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - 30);
-  // Use LOCAL date parts (not toISOString/UTC) so "today" is the local SAST day,
-  // not shifted back one day between local midnight and 02:00.
-  const iso = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  return { dateFrom: iso(from), dateTo: iso(to) };
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "12 Jun" from a YYYY-MM-DD string. */
+function shortD(ymd: string) {
+  const [, m, d] = ymd.split('-');
+  return `${Number(d)} ${MONTHS[Number(m) - 1] ?? ''}`;
 }
 
 function pct(n: number, total: number) {
@@ -109,25 +105,28 @@ function KpiCard({
 }
 
 export default function DashboardPage() {
-  const window = last30Days();
+  // Date range that drives every time-based panel below. Defaults to last 30 days.
+  const [range, setRange] = useState(last30DayRange());
+  const rangeLabel = `${shortD(range.dateFrom)} – ${shortD(range.dateTo)}`;
 
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
   const { data: alerts, isLoading: alertsLoading } = useDashboardAlerts();
-  const { data: boltSummary, isLoading: boltLoading } = useBoltTripsSummary(window);
+  const { data: boltSummary, isLoading: boltLoading } = useBoltTripsSummary(range);
   const { data: recentTrips, isLoading: tripsLoading } = useBoltTrips({
-    ...window,
+    ...range,
     page: 1,
     limit: 6,
   });
   const { data: syncLogs } = useBoltSyncLogs({ limit: 1 });
-  const { data: analytics } = useBoltAnalytics(window);
+  const { data: analytics } = useBoltAnalytics(range);
   const navigate = useNavigate();
 
-  // Chart click -> open the Bolt-trips list filtered to the selection.
+  // Chart click -> open the Bolt-trips list filtered to the selection, carrying
+  // the dashboard's current date range so the drill-down matches what's shown.
   const drillToTrips = (d: TripDrill) => {
     const p = new URLSearchParams();
-    if (d.dateFrom) p.set('dateFrom', d.dateFrom);
-    if (d.dateTo) p.set('dateTo', d.dateTo);
+    p.set('dateFrom', d.dateFrom ?? range.dateFrom);
+    p.set('dateTo', d.dateTo ?? range.dateTo);
     if (d.status) p.set('status', d.status);
     if (d.paymentMethod) p.set('paymentMethod', d.paymentMethod);
     if (d.search) p.set('search', d.search);
@@ -174,7 +173,7 @@ export default function DashboardPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-xl font-bold text-ink">Command centre</h1>
-          <p className="font-mono text-xs text-ink-faint">Fleet operations overview · last 30 days</p>
+          <p className="font-mono text-xs text-ink-faint">Fleet operations overview · {rangeLabel}</p>
         </div>
         <div className="flex gap-2">
           <Link to="/vehicles" className={primaryBtn}>
@@ -189,11 +188,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* date-range filter — drives every time-based panel below */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-paper-line bg-paper-card px-4 py-2.5">
+        <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Date range</span>
+        <DateRangePicker value={range} onChange={setRange} />
+      </div>
+
       {/* 1 — KPI strip */}
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(212px, 1fr))' }}>
         <KpiCard
           icon={<HiOutlineBanknotes className="text-base" />}
-          label="Net revenue 30d"
+          label="Net revenue"
           value={boltLoading ? '—' : zar(net)}
           valueClassName="text-success"
           delta={<Delta cur={net} prev={previous.net} />}
@@ -201,14 +206,14 @@ export default function DashboardPage() {
         />
         <KpiCard
           icon={<HiOutlineCheckCircle className="text-base" />}
-          label="Finished trips 30d"
+          label="Finished trips"
           value={boltLoading ? '—' : int(finished)}
           delta={<Delta cur={finished} prev={previous.finished} />}
           spark={<Sparkline data={dailyTrend.map((d) => d.finished)} color="var(--peri)" />}
         />
         <KpiCard
           icon={<HiOutlineCurrencyDollar className="text-base" />}
-          label="Gross fare 30d"
+          label="Gross fare"
           value={boltLoading ? '—' : zar(gross)}
           delta={<Delta cur={gross} prev={previous.gross} />}
           spark={<Sparkline data={dailyTrend.map((d) => d.gross)} color="var(--peri)" />}
@@ -229,7 +234,7 @@ export default function DashboardPage() {
 
       {/* 2 — Hero row: revenue trend + fleet status */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2" title="Revenue trend" subtitle="last 30 days">
+        <Card className="lg:col-span-2" title="Revenue trend" subtitle={rangeLabel}>
           {boltLoading ? (
             <LoadingSpinner size="md" />
           ) : (
@@ -252,7 +257,7 @@ export default function DashboardPage() {
                 values={dailyTrend.map((d) => d.gross)}
                 secondary={dailyTrend.map((d) => d.net)}
                 labels={dailyTrend.map((d) => d.day.slice(5))}
-                tickEvery={5}
+                tickEvery={Math.max(1, Math.ceil(dailyTrend.length / 6))}
               />
               <div className="flex items-center justify-between border-t border-paper-hair pt-2.5">
                 <div className="flex gap-4 font-mono text-meta uppercase tracking-wider text-ink-ghost">
@@ -274,7 +279,7 @@ export default function DashboardPage() {
           )}
         </Card>
 
-        <Card title="Fleet status">
+        <Card title="Fleet status" subtitle="current snapshot">
           {metricsLoading ? (
             <LoadingSpinner size="md" />
           ) : (
@@ -311,7 +316,7 @@ export default function DashboardPage() {
 
       {/* 3 — Payment mix + funnel + top vehicles */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card title="Payment mix" subtitle="last 30 days">
+        <Card title="Payment mix" subtitle={rangeLabel}>
           <div className="flex items-center gap-5">
             <div className="shrink-0">
               <Donut
@@ -341,11 +346,11 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card title="Completion funnel" subtitle="last 30 days">
+        <Card title="Completion funnel" subtitle={rangeLabel}>
           <CompletionFunnel funnel={funnel} onSelect={drillToTrips} />
         </Card>
 
-        <Card title="Top earning vehicles" subtitle="last 30 days">
+        <Card title="Top earning vehicles" subtitle={rangeLabel}>
           <TopVehiclesBars topVehicles={topVehicles} onSelect={drillToTrips} />
         </Card>
       </div>
@@ -355,7 +360,7 @@ export default function DashboardPage() {
         <Card
           className="lg:col-span-2"
           title="Recent Bolt trips"
-          subtitle="last 30 days"
+          subtitle={rangeLabel}
           bodyClassName="p-0"
           actions={
             <Link
