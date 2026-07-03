@@ -1,166 +1,354 @@
 import { Link } from 'react-router-dom';
-import { useDashboardMetrics, useDashboardActivity, useDashboardAlerts } from '../hooks/useDashboard';
-import { Card, Badge, LoadingSpinner } from '../components/ui';
 import {
-  HiTruck,
-  HiUsers,
-  HiArrowsRightLeft,
-  HiWrenchScrewdriver,
-  HiPlus,
-  HiExclamationTriangle,
-  HiCurrencyDollar,
-  HiChevronRight,
+  useDashboardMetrics,
+  useDashboardActivity,
+  useDashboardAlerts,
+} from '../hooks/useDashboard';
+import { useBoltTripsSummary, useBoltTrips, useBoltSyncLogs } from '../hooks/useBolt';
+import { Card, Stat, Badge, StatusBadge, Table, LoadingSpinner } from '../components/ui';
+import type { BoltTrip } from '../api/bolt';
+import { zar, int, lastSynced } from '../theme/format';
+import {
+  HiOutlineTruck,
+  HiOutlinePlus,
+  HiOutlineWrench,
+  HiOutlineExclamationTriangle,
+  HiOutlineArrowRight,
+  HiOutlineBolt,
 } from 'react-icons/hi2';
-import { formatCurrency } from '../utils/currency';
 
-const metricConfig = [
-  { key: 'totalVehicles', label: 'Total Vehicles', icon: HiTruck, color: 'bg-blue-500', link: '/vehicles' },
-  { key: 'activeVehicles', label: 'Active Vehicles', icon: HiTruck, color: 'bg-green-500', link: '/vehicles?status=ACTIVE' },
-  { key: 'inServiceVehicles', label: 'In Service', icon: HiWrenchScrewdriver, color: 'bg-yellow-500', link: '/vehicles?status=IN_SERVICE' },
-  { key: 'totalDrivers', label: 'Total Drivers', icon: HiUsers, color: 'bg-purple-500', link: '/drivers' },
-  { key: 'activeDrivers', label: 'Active Drivers', icon: HiUsers, color: 'bg-indigo-500', link: '/drivers?status=ACTIVE' },
-  { key: 'activeAssignments', label: 'Active Assignments', icon: HiArrowsRightLeft, color: 'bg-cyan-500', link: '/assignments?status=ACTIVE' },
-  { key: 'totalServiceRecords', label: 'Service Records', icon: HiWrenchScrewdriver, color: 'bg-orange-500', link: '/services' },
-  { key: 'pendingServices', label: 'Pending Services', icon: HiExclamationTriangle, color: 'bg-red-500', link: '/services?status=DRAFT,SCHEDULED,AUTHORIZED' },
+/** Last-30-days window, computed client-side for the Bolt figures. */
+function last30Days() {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - 30);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { dateFrom: iso(from), dateTo: iso(to) };
+}
+
+function pct(n: number, total: number) {
+  if (!total) return 0;
+  return Math.max(0, Math.min(100, (n / total) * 100));
+}
+
+const primaryBtn =
+  'inline-flex items-center gap-1.5 rounded-control bg-primary-500 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-700';
+
+const RECENT_COLUMNS = [
+  { key: 'created', header: 'Created' },
+  { key: 'vehicle', header: 'Vehicle' },
+  { key: 'driver', header: 'Driver' },
+  { key: 'status', header: 'Status' },
+  { key: 'gross', header: 'Gross', className: 'text-right' },
 ];
+const RECENT_TEMPLATE = '120px 130px 1fr 120px 90px';
 
-function getFinancialLinks() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const today = `${year}-${month}-${day}`;
-  return {
-    mtd: `/services?dateFrom=${year}-${month}-01&dateTo=${today}`,
-    ytd: `/services?dateFrom=${year}-01-01&dateTo=${today}`,
-  };
+/** One row of the Fleet-status breakdown. */
+function FleetRow({
+  label,
+  count,
+  total,
+  bar,
+  link,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  bar: string;
+  link: string;
+}) {
+  return (
+    <Link to={link} className="block rounded-control px-1.5 py-2 hover:bg-paper-sunken">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-sm text-ink-body">{label}</span>
+        <span className="font-mono text-sm font-semibold text-ink-strong">{int(count)}</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-pill bg-paper-sunken">
+        <div className={`h-full ${bar}`} style={{ width: `${pct(count, total)}%` }} />
+      </div>
+    </Link>
+  );
 }
 
 export default function DashboardPage() {
+  const window = last30Days();
+
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
-  const { data: activity, isLoading: activityLoading } = useDashboardActivity();
   const { data: alerts, isLoading: alertsLoading } = useDashboardAlerts();
+  const { data: boltSummary, isLoading: boltLoading } = useBoltTripsSummary(window);
+  const { data: recentTrips, isLoading: tripsLoading } = useBoltTrips({
+    ...window,
+    page: 1,
+    limit: 6,
+  });
+  const { data: syncLogs } = useBoltSyncLogs({ limit: 1 });
+
+  const m = metrics as any;
+  const totalVehicles = m?.totalVehicles ?? 0;
+  const activeV = m?.activeVehicles ?? 0;
+  const inServiceV = m?.inServiceVehicles ?? 0;
+  const outV = m?.outOfServiceVehicles ?? 0;
+  const retiredV = m?.retiredVehicles ?? 0;
+
+  const gross = boltSummary?.revenue.grossFare ?? 0;
+  const net = boltSummary?.revenue.netEarnings ?? 0;
+  const commission = boltSummary?.revenue.commission ?? 0;
+  const attempts = boltSummary?.totalOrders ?? 0;
+  const finished = boltSummary?.finishedTrips ?? 0;
+  const finishedPct = pct(finished, attempts);
+
+  const latestSync = syncLogs?.data?.[0];
+
+  // Alerts hook is typed as an array in api/dashboard but the runtime payload
+  // may be wrapped; normalise defensively so either shape renders.
+  const alertList: any[] = ((alerts as any)?.data ?? (alerts as any) ?? []) as any[];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="space-y-4">
+      {/* 1 — page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Dashboard</h1>
+          <p className="font-mono text-xs text-ink-faint">Fleet operations overview</p>
+        </div>
         <div className="flex gap-2">
-          <Link to="/vehicles" className="inline-flex items-center gap-1 px-3 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700">
-            <HiPlus /> Add Vehicle
+          <Link to="/vehicles" className={primaryBtn}>
+            <HiOutlinePlus className="text-base" /> Add Vehicle
           </Link>
-          <Link to="/services" className="inline-flex items-center gap-1 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
-            <HiPlus /> New Service
+          <Link
+            to="/services"
+            className="inline-flex items-center gap-1.5 rounded-control border border-paper-line bg-paper-card px-3.5 py-2 text-sm font-semibold text-ink-body hover:bg-paper-sunken"
+          >
+            <HiOutlineWrench className="text-base" /> New Service
           </Link>
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {metricConfig.map((m) => (
-          <Link key={m.key} to={m.link} className="group">
-            <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
-              <div className="flex items-center gap-3">
-                <div className={`${m.color} p-2 rounded-lg`}>
-                  <m.icon className="text-xl text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-2xl font-bold text-gray-900">
-                    {metricsLoading ? '...' : (metrics as any)?.[m.key] ?? 0}
-                  </p>
-                  <p className="text-xs text-gray-500">{m.label}</p>
-                </div>
-                <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-              </div>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {/* 2 — KPI strip */}
+      <Card bodyClassName="p-0">
+        <div className="grid grid-cols-2 divide-x divide-y divide-paper-hair lg:grid-cols-4 lg:divide-y-0">
+          <Stat
+            label="Active vehicles"
+            value={metricsLoading ? '—' : int(activeV)}
+            sub={metricsLoading ? undefined : `of ${int(totalVehicles)} total`}
+            valueClassName="text-success"
+          />
+          <Stat
+            label="Services due"
+            value={metricsLoading ? '—' : int(m?.pendingServices ?? 0)}
+            valueClassName="text-warning"
+          />
+          <Stat
+            label="Active drivers"
+            value={metricsLoading ? '—' : int(m?.activeDrivers ?? 0)}
+          />
+          <Stat
+            label="Unmatched Bolt trips"
+            value={boltLoading ? '—' : int(boltSummary?.unmatchedToVehicle ?? 0)}
+            valueClassName={
+              (boltSummary?.unmatchedToVehicle ?? 0) > 0 ? 'text-danger' : 'text-ink-strong'
+            }
+          />
+        </div>
+      </Card>
 
-      {/* Financial Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to={getFinancialLinks().mtd} className="group">
-          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-500 p-2 rounded-lg">
-                <HiCurrencyDollar className="text-xl text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-2xl font-bold text-gray-900">
-                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsMTD ?? 0, 'ZAR')}
-                </p>
-                <p className="text-xs text-gray-500">Service Costs MTD</p>
-              </div>
-              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-            </div>
-          </Card>
-        </Link>
-        <Link to={getFinancialLinks().ytd} className="group">
-          <Card className="!p-4 transition-all duration-150 group-hover:shadow-md group-hover:scale-[1.02]">
-            <div className="flex items-center gap-3">
-              <div className="bg-teal-500 p-2 rounded-lg">
-                <HiCurrencyDollar className="text-xl text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-2xl font-bold text-gray-900">
-                  {metricsLoading ? '...' : formatCurrency((metrics as any)?.serviceCostsYTD ?? 0, 'ZAR')}
-                </p>
-                <p className="text-xs text-gray-500">Service Costs YTD</p>
-              </div>
-              <HiChevronRight className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-            </div>
-          </Card>
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <Card title="Recent Activity">
-          {activityLoading ? (
+      {/* 3 — Bolt performance + Fleet status */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Bolt performance */}
+        <Card className="lg:col-span-2" title="Bolt performance" subtitle="last 30 days">
+          {boltLoading ? (
             <LoadingSpinner size="md" />
           ) : (
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {activity?.data?.length === 0 && (
-                <p className="text-sm text-gray-500">No recent activity</p>
-              )}
-              {activity?.data?.map((item: any) => (
-                <div key={item.id} className="flex items-start gap-3 text-sm">
-                  <div className="w-2 h-2 mt-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-gray-700">
-                      <span className="font-medium">{item.action}</span> on{' '}
-                      <span className="font-medium">{item.entityType}</span>
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(item.createdAt).toLocaleString()}
-                      {item.user && ` by ${item.user.firstName} ${item.user.lastName}`}
-                    </p>
-                  </div>
+            <div className="space-y-5">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                    Gross fare
+                  </span>
+                  <span className="font-mono text-stat font-semibold text-success">{zar(gross)}</span>
                 </div>
-              ))}
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                    Net earnings
+                  </span>
+                  <span className="font-mono text-stat font-semibold text-ink-strong">{zar(net)}</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                    Commission
+                  </span>
+                  <span className="font-mono text-stat font-semibold text-ink-muted">
+                    {zar(commission)}
+                  </span>
+                </div>
+              </div>
+
+              {/* attempts vs finished stacked bar */}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                    Order attempts
+                  </span>
+                  <span className="font-mono text-xs text-ink-muted">
+                    {int(finished)} / {int(attempts)} finished
+                  </span>
+                </div>
+                <div className="flex h-3 w-full overflow-hidden rounded-pill bg-paper-sunken">
+                  <div className="h-full bg-success" style={{ width: `${finishedPct}%` }} />
+                  <div className="h-full bg-neutral" style={{ width: `${100 - finishedPct}%` }} />
+                </div>
+                <div className="mt-2 flex items-center gap-4">
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-ink-muted">
+                    <span className="h-2 w-2 rounded-pill bg-success" /> Finished
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-ink-muted">
+                    <span className="h-2 w-2 rounded-pill bg-neutral" /> Not completed
+                  </span>
+                  <Link
+                    to="/bolt-trips"
+                    className="ml-auto inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
+                  >
+                    View trips <HiOutlineArrowRight />
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
         </Card>
 
-        {/* Service Alerts */}
-        <Card title="Service Alerts">
+        {/* Fleet status */}
+        <Card title="Fleet status">
+          {metricsLoading ? (
+            <LoadingSpinner size="md" />
+          ) : (
+            <div className="space-y-1">
+              <FleetRow label="Active" count={activeV} total={totalVehicles} bar="bg-success" link="/vehicles?status=ACTIVE" />
+              <FleetRow label="In service" count={inServiceV} total={totalVehicles} bar="bg-warning" link="/vehicles?status=IN_SERVICE" />
+              <FleetRow label="Out of service" count={outV} total={totalVehicles} bar="bg-danger" link="/vehicles?status=OUT_OF_SERVICE" />
+              <FleetRow label="Retired" count={retiredV} total={totalVehicles} bar="bg-neutral" link="/vehicles?status=RETIRED" />
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* 4 — Recent Bolt trips + Needs attention */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Recent Bolt trips */}
+        <Card
+          className="lg:col-span-2"
+          title="Recent Bolt trips"
+          subtitle="last 30 days"
+          bodyClassName="p-0"
+          actions={
+            <Link
+              to="/bolt-trips"
+              className="inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
+            >
+              All trips <HiOutlineArrowRight />
+            </Link>
+          }
+        >
+          {tripsLoading ? (
+            <div className="p-5">
+              <LoadingSpinner size="md" />
+            </div>
+          ) : (
+            <Table<BoltTrip>
+              columns={RECENT_COLUMNS}
+              template={RECENT_TEMPLATE}
+              rows={recentTrips?.data ?? []}
+              emptyMessage="No recent Bolt trips."
+              renderCell={(t, key) => {
+                switch (key) {
+                  case 'created':
+                    return (
+                      <span className="font-mono text-xs text-ink-muted">
+                        {new Date(t.orderCreatedAt).toLocaleString('en-ZA', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    );
+                  case 'vehicle':
+                    return (
+                      <span className="font-mono text-xs text-ink-strong">
+                        {t.vehicleLicensePlate || '—'}
+                        {t.vehicleLicensePlate && !t.vehicleId && (
+                          <span className="ml-1 font-sans text-[9px] uppercase tracking-wide text-warning">
+                            unmatched
+                          </span>
+                        )}
+                      </span>
+                    );
+                  case 'driver':
+                    return <span className="truncate text-sm text-ink-body">{t.driverName || '—'}</span>;
+                  case 'status':
+                    return <StatusBadge kind="bolt" value={t.orderStatus} />;
+                  case 'gross':
+                    return (
+                      <span className="font-mono text-xs text-ink-strong">
+                        {t.ridePrice != null ? zar(t.ridePrice) : '—'}
+                      </span>
+                    );
+                  default:
+                    return null;
+                }
+              }}
+            />
+          )}
+        </Card>
+
+        {/* Needs attention + Integrations */}
+        <Card title="Needs attention">
           {alertsLoading ? (
             <LoadingSpinner size="md" />
           ) : (
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {alerts?.data?.length === 0 && (
-                <p className="text-sm text-gray-500">No service alerts</p>
+            <div className="space-y-2.5">
+              {alertList.length === 0 && (
+                <p className="text-sm text-ink-faint">Nothing needs attention.</p>
               )}
-              {alerts?.data?.map((alert: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                  <HiExclamationTriangle className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-900">{alert.vehicle?.make} {alert.vehicle?.model}</p>
-                    <p className="text-gray-600">{alert.message || 'Service due'}</p>
-                    <Badge color="yellow">{alert.type || 'Due'}</Badge>
+              {alertList.map((a: any) => (
+                <Link
+                  key={a.vehicle?.id ?? a.id}
+                  to={a.vehicle?.id ? `/vehicles/${a.vehicle.id}` : '/services'}
+                  className="flex items-start gap-3 rounded-control border border-paper-hair bg-paper-sunken px-3 py-2.5 hover:border-paper-line"
+                >
+                  <HiOutlineExclamationTriangle className="mt-0.5 flex-shrink-0 text-warning" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink-strong">
+                      {a.vehicle?.make} {a.vehicle?.model}
+                    </p>
+                    <p className="font-mono text-xs text-ink-faint">
+                      {a.vehicle?.licensePlate || '—'}
+                      {a.vehicle?.year ? ` · ${a.vehicle.year}` : ''}
+                    </p>
                   </div>
-                </div>
+                  <Badge tone="warning">Service due</Badge>
+                </Link>
               ))}
+
+              {/* Integrations freshness */}
+              <div className="border-t border-paper-hair pt-3">
+                <p className="mb-2 font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                  Integrations
+                </p>
+                <Link
+                  to="/bolt-trips"
+                  className="flex items-center gap-2.5 rounded-control px-1 py-1.5 hover:bg-paper-sunken"
+                >
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
+                    <span className="absolute inline-flex h-full w-full rounded-pill bg-success opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-pill bg-success" />
+                  </span>
+                  <HiOutlineBolt className="flex-shrink-0 text-ink-muted" />
+                  <span className="flex-1 text-sm text-ink-body">Bolt Fleet</span>
+                  <span className="font-mono text-xs text-ink-faint">
+                    {latestSync ? lastSynced(latestSync.startedAt) : 'no syncs'}
+                  </span>
+                </Link>
+              </div>
             </div>
           )}
         </Card>

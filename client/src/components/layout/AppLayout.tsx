@@ -4,11 +4,11 @@ import Header from './Header';
 
 export default function AppLayout() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-paper-bg">
       <Sidebar />
-      <div className="ml-64">
+      <div className="ml-[236px]">
         <Header />
-        <main className="p-6">
+        <main className="px-6 pb-10 pt-5">
           <Outlet />
         </main>
       </div>

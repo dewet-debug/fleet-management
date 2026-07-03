@@ -1,14 +1,24 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import clsx from 'clsx';
 import { useDriver, useUpdateDriver, useDeleteDriver, useDriverCosts } from '../hooks/useDrivers';
-import { Card, Badge, Button, Input, Modal, ConfirmDialog, LoadingSpinner } from '../components/ui';
-import { HiArrowLeft, HiPencil, HiTrash } from 'react-icons/hi2';
+import { Card, Badge, StatusBadge, Table, Button, Input, Select, Modal, ConfirmDialog, LoadingSpinner } from '../components/ui';
+import { HiOutlineArrowLeft, HiPencil, HiTrash } from 'react-icons/hi2';
 import { formatCurrency } from '../utils/currency';
+import { int } from '../theme/format';
 import toast from 'react-hot-toast';
 
-const statusColors: Record<string, 'green' | 'gray' | 'red'> = {
-  ACTIVE: 'green', INACTIVE: 'gray', SUSPENDED: 'red',
-};
+/** label–value row for info blocks (mono values) */
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1.5">
+      <dt className="text-sm text-ink-muted">{label}</dt>
+      <dd className="text-right font-mono text-sm text-ink-strong">{value ?? '—'}</dd>
+    </div>
+  );
+}
+
+const fmtDate = (val?: string | null) => (val ? new Date(val).toLocaleDateString() : '—');
 
 export default function DriverDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +35,9 @@ export default function DriverDetailPage() {
   const { data: costData } = useDriverCosts(id!, costPeriod);
 
   if (isLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
-  if (!driver) return <p className="text-center text-gray-500 py-12">Driver not found</p>;
+  if (!driver) return <p className="py-12 text-center text-ink-faint">Driver not found</p>;
+
+  const d = driver as any;
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,145 +57,186 @@ export default function DriverDetailPage() {
     } catch (err: any) { toast.error(err.response?.data?.message || 'Delete failed'); }
   };
 
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'costs', label: 'Costs' },
+    { key: 'assignments', label: 'Assignments' },
+  ] as const;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link to="/drivers" className="text-gray-500 hover:text-gray-700"><HiArrowLeft className="text-xl" /></Link>
+      {/* header */}
+      <div className="flex items-start gap-4">
+        <Link to="/drivers" className="mt-1 text-ink-muted hover:text-ink">
+          <HiOutlineArrowLeft className="text-xl" />
+        </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{driver.firstName} {driver.lastName}</h1>
-          <p className="text-gray-500">{driver.employeeId} &middot; {driver.email}</p>
+          <h1 className="text-xl font-bold text-ink">{d.firstName} {d.lastName}</h1>
+          <p className="font-mono text-xs text-ink-faint">
+            {d.employeeId || '—'} · {d.email} · {d.phone || '—'}
+          </p>
         </div>
-        <Badge color={statusColors[driver.status]}>{driver.status}</Badge>
-        <Button variant="secondary" size="sm" onClick={() => { setEditForm(driver); setShowEdit(true); }}>
-          <HiPencil className="mr-1" /> Edit
-        </Button>
-        <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
-          <HiTrash className="mr-1" /> Delete
-        </Button>
+        <div className="flex items-center gap-2">
+          <StatusBadge kind="driver" value={d.status} />
+          <Button variant="secondary" size="sm" onClick={() => { setEditForm(driver); setShowEdit(true); }}>
+            <HiPencil /> Edit
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
+            <HiTrash /> Delete
+          </Button>
+        </div>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4">
-          {(['overview', 'costs', 'assignments'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                tab === t ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
+      {/* tab bar */}
+      <div className="border-b border-paper-line">
+        <nav className="flex gap-6">
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={clsx(
+                '-mb-px border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
+                tab === t.key
+                  ? 'border-primary-500 text-primary-700'
+                  : 'border-transparent text-ink-muted hover:text-ink-body'
+              )}
+            >
+              {t.label}
+            </button>
           ))}
         </nav>
       </div>
 
+      {/* OVERVIEW */}
       {tab === 'overview' && (
-        <Card title="Driver Details">
-          <dl className="space-y-3 text-sm">
-            {[
-              ['Phone', driver.phone || 'N/A'],
-              ['License Number', driver.licenseNumber],
-              ['License Expiry', new Date(driver.licenseExpiry).toLocaleDateString()],
-              ['Notes', driver.notes || 'N/A'],
-              ['Created', new Date(driver.createdAt).toLocaleDateString()],
-            ].map(([label, value]) => (
-              <div key={label as string} className="flex justify-between">
-                <dt className="text-gray-500">{label}</dt>
-                <dd className="font-medium text-gray-900">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
-      )}
-
-      {tab === 'costs' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={costPeriod}
-              onChange={(e) => setCostPeriod(e.target.value as 'weekly' | 'monthly')}>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-            {costData && (
-              <div className="text-sm text-gray-600">
-                Lifetime: <span className="font-semibold text-gray-900">{formatCurrency(costData.lifetimeCost, 'ZAR')}</span>
-                {' '}({costData.lifetimeServices} services)
-              </div>
-            )}
-          </div>
-          <Card>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Period</th>
-                  <th className="px-4 py-3 text-left">Services</th>
-                  <th className="px-4 py-3 text-left">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {costData?.periods?.map((p: any, idx: number) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{p.periodLabel}</td>
-                    <td className="px-4 py-3">{p.serviceCount}</td>
-                    <td className="px-4 py-3">{formatCurrency(p.totalCost, 'ZAR')}</td>
-                  </tr>
-                ))}
-                {(!costData?.periods || costData.periods.length === 0) && (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No service costs recorded</td></tr>
-                )}
-              </tbody>
-            </table>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card title="Driver Details">
+            <dl className="divide-y divide-paper-hair">
+              <Field label="Employee ID" value={d.employeeId || '—'} />
+              <Field label="Phone" value={d.phone || '—'} />
+              <Field label="Licence number" value={d.licenseNumber || '—'} />
+              <Field label="Licence expiry" value={fmtDate(d.licenseExpiry)} />
+              <Field label="Created" value={fmtDate(d.createdAt)} />
+            </dl>
           </Card>
-          <Card title="Cost by Vehicle">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Vehicle</th>
-                  <th className="px-4 py-3 text-left">Services</th>
-                  <th className="px-4 py-3 text-left">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {costData?.costByVehicle?.map((item: any) => (
-                  <tr key={item.vehicleId} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.vehicleName}</td>
-                    <td className="px-4 py-3">{item.serviceCount}</td>
-                    <td className="px-4 py-3">{formatCurrency(item.totalCost, 'ZAR')}</td>
-                  </tr>
-                ))}
-                {(!costData?.costByVehicle || costData.costByVehicle.length === 0) && (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No vehicle cost data</td></tr>
-                )}
-              </tbody>
-            </table>
+          <Card title="Notes">
+            <p className="text-sm text-ink-body">
+              {d.notes || <span className="text-ink-faint">No notes recorded.</span>}
+            </p>
           </Card>
         </div>
       )}
 
-      {tab === 'assignments' && (
-        <Card>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="px-4 py-3 text-left">Vehicle</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Start Date</th>
-                <th className="px-4 py-3 text-left">End Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {driver.assignments?.map((a: any) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-3">{a.vehicle?.make} {a.vehicle?.model} ({a.vehicle?.licensePlate})</td>
-                  <td className="px-4 py-3"><Badge color={a.status === 'ACTIVE' ? 'green' : 'gray'}>{a.status}</Badge></td>
-                  <td className="px-4 py-3">{new Date(a.startDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">{a.endDate ? new Date(a.endDate).toLocaleDateString() : '-'}</td>
-                </tr>
-              ))}
-              {(!driver.assignments || driver.assignments.length === 0) && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">No assignments</td></tr>
-              )}
-            </tbody>
-          </table>
-        </Card>
+      {/* COSTS */}
+      {tab === 'costs' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              value={costPeriod}
+              onChange={(e) => setCostPeriod(e.target.value as 'weekly' | 'monthly')}
+              options={[
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'monthly', label: 'Monthly' },
+              ]}
+            />
+            {costData && (
+              <div className="text-sm text-ink-muted">
+                Lifetime:{' '}
+                <span className="font-mono font-semibold text-ink-strong">{formatCurrency(costData.lifetimeCost, 'ZAR')}</span>
+                {' '}({int(costData.lifetimeServices)} services)
+              </div>
+            )}
+          </div>
+
+          <Card title="Service Cost by Period" bodyClassName="p-0">
+            <Table<any>
+              columns={[
+                { key: 'period', header: 'Period' },
+                { key: 'services', header: 'Services', className: 'text-right' },
+                { key: 'cost', header: 'Total Cost', className: 'text-right' },
+              ]}
+              template="1fr 120px 150px"
+              rows={(costData?.periods ?? []).map((p: any, idx: number) => ({ id: idx, ...p }))}
+              emptyMessage="No service costs recorded"
+              renderCell={(p, key) => {
+                switch (key) {
+                  case 'period':
+                    return <span className="text-sm text-ink-body">{p.periodLabel}</span>;
+                  case 'services':
+                    return <span className="font-mono text-xs text-ink-body">{int(p.serviceCount)}</span>;
+                  case 'cost':
+                    return <span className="font-mono text-xs text-ink-strong">{formatCurrency(p.totalCost, 'ZAR')}</span>;
+                  default:
+                    return null;
+                }
+              }}
+            />
+          </Card>
+
+          <Card title="Cost by Vehicle" bodyClassName="p-0">
+            <Table<any>
+              columns={[
+                { key: 'vehicle', header: 'Vehicle' },
+                { key: 'services', header: 'Services', className: 'text-right' },
+                { key: 'cost', header: 'Total Cost', className: 'text-right' },
+              ]}
+              template="1fr 120px 150px"
+              rows={(costData?.costByVehicle ?? []).map((item: any) => ({ id: item.vehicleId, ...item }))}
+              emptyMessage="No vehicle cost data"
+              renderCell={(item, key) => {
+                switch (key) {
+                  case 'vehicle':
+                    return <span className="text-sm text-ink-body">{item.vehicleName}</span>;
+                  case 'services':
+                    return <span className="font-mono text-xs text-ink-body">{int(item.serviceCount)}</span>;
+                  case 'cost':
+                    return <span className="font-mono text-xs text-ink-strong">{formatCurrency(item.totalCost, 'ZAR')}</span>;
+                  default:
+                    return null;
+                }
+              }}
+            />
+          </Card>
+        </div>
       )}
 
+      {/* ASSIGNMENTS */}
+      {tab === 'assignments' && (
+        <Table<any>
+          columns={[
+            { key: 'vehicle', header: 'Vehicle' },
+            { key: 'status', header: 'Status' },
+            { key: 'start', header: 'Start' },
+            { key: 'end', header: 'End' },
+          ]}
+          template="1fr 140px 150px 150px"
+          rows={d.assignments ?? []}
+          emptyMessage="No assignments"
+          renderCell={(a, key) => {
+            switch (key) {
+              case 'vehicle':
+                return (
+                  <span className="text-sm text-ink-body">
+                    {a.vehicle?.make} {a.vehicle?.model}{' '}
+                    <span className="font-mono text-xs text-ink-faint">({a.vehicle?.licensePlate})</span>
+                  </span>
+                );
+              case 'status':
+                return a.status === 'ACTIVE'
+                  ? <Badge tone="success">Active</Badge>
+                  : <Badge tone="neutral">{a.status}</Badge>;
+              case 'start':
+                return <span className="font-mono text-xs text-ink-body">{fmtDate(a.startDate)}</span>;
+              case 'end':
+                return <span className="font-mono text-xs text-ink-body">{fmtDate(a.endDate)}</span>;
+              default:
+                return null;
+            }
+          }}
+        />
+      )}
+
+      {/* Edit modal */}
       <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit Driver" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -191,12 +244,16 @@ export default function DriverDetailPage() {
             <Input label="Last Name" value={editForm.lastName || ''} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} />
             <Input label="Phone" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
             <Input label="License Number" value={editForm.licenseNumber || ''} onChange={(e) => setEditForm({ ...editForm, licenseNumber: e.target.value })} />
-            <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={editForm.status || ''}
-              onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="SUSPENDED">Suspended</option>
-            </select>
+            <Select
+              label="Status"
+              value={editForm.status || ''}
+              onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+              options={[
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'INACTIVE', label: 'Inactive' },
+                { value: 'SUSPENDED', label: 'Suspended' },
+              ]}
+            />
           </div>
           <Input label="Notes" value={editForm.notes || ''} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
           <div className="flex justify-end gap-2">
@@ -207,7 +264,7 @@ export default function DriverDetailPage() {
       </Modal>
 
       <ConfirmDialog isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete}
-        title="Delete Driver" message={`Are you sure you want to delete ${driver.firstName} ${driver.lastName}?`} variant="danger" />
+        title="Delete Driver" message={`Are you sure you want to delete ${d.firstName} ${d.lastName}?`} variant="danger" />
     </div>
   );
 }

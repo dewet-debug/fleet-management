@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import { Card, Badge, Button, LoadingSpinner } from '../components/ui';
+import { Card, Badge, Button, LoadingSpinner, Table } from '../components/ui';
 import {
-  HiArrowUpTray,
-  HiArrowDownTray,
-  HiCheckCircle,
-  HiXCircle,
-  HiExclamationTriangle,
+  HiOutlineArrowUpTray,
+  HiOutlineArrowDownTray,
+  HiOutlineCheckCircle,
+  HiOutlineXCircle,
+  HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import { useUploadVehicles, useUploadDrivers, useUploadServices, useUploadAssignments } from '../hooks/useBulkUpload';
 import { getTemplateUrl, BulkUploadResult } from '../api/bulkUpload';
@@ -39,9 +39,17 @@ const columnInfo: Record<TabKey, { required: string[]; optional: string[] }> = {
   },
 };
 
+const ERROR_COLUMNS = [
+  { key: 'row', header: 'Row' },
+  { key: 'field', header: 'Field' },
+  { key: 'message', header: 'Error' },
+];
+const ERROR_TEMPLATE = '72px 160px 1fr';
+
 export default function BulkUploadPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('vehicles');
   const [results, setResults] = useState<Record<string, BulkUploadResult | null>>({});
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const vehiclesMutation = useUploadVehicles();
@@ -59,10 +67,7 @@ export default function BulkUploadPage() {
   const currentMutation = mutations[activeTab];
   const currentResult = results[activeTab] || null;
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File) => {
     try {
       const result = await currentMutation.mutateAsync(file);
       setResults((prev) => ({ ...prev, [activeTab]: result }));
@@ -74,8 +79,21 @@ export default function BulkUploadPage() {
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Upload failed');
     }
+  };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processFile(file);
     if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await processFile(file);
   };
 
   const handleDownloadTemplate = () => {
@@ -97,46 +115,59 @@ export default function BulkUploadPage() {
   const info = columnInfo[activeTab];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Bulk Upload</h1>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.key
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+    <div className="space-y-4">
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Bulk Upload</h1>
+          <p className="font-mono text-xs text-ink-faint">Import fleet records from Excel · .xlsx</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upload Area */}
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="!p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Upload {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-                </h2>
-                <Button variant="secondary" onClick={handleDownloadTemplate}>
-                  <HiArrowDownTray className="mr-1" /> Download Template
-                </Button>
-              </div>
+      {/* Tabs */}
+      <div className="inline-flex rounded-control border border-paper-line bg-paper-card p-0.5">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`rounded-[6px] px-4 py-1.5 text-sm font-semibold transition-colors ${
+              activeTab === tab.key ? 'bg-primary-50 text-primary-700' : 'text-ink-muted hover:text-ink'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <HiArrowUpTray className="mx-auto text-4xl text-gray-400 mb-3" />
-                <p className="text-sm text-gray-600 mb-3">
-                  Upload an Excel file (.xlsx) with your {activeTab} data
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Upload Area */}
+        <div className="space-y-4 lg:col-span-2">
+          <Card
+            title={`Upload ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+            actions={
+              <Button variant="secondary" size="sm" onClick={handleDownloadTemplate}>
+                <HiOutlineArrowDownTray className="mr-1" /> Download Template
+              </Button>
+            }
+          >
+            <div className="space-y-4">
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                className={`cursor-pointer rounded-card border-2 border-dashed p-8 text-center transition-colors ${
+                  dragging
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-paper-line bg-paper-sunken hover:border-primary-500'
+                }`}
+              >
+                <HiOutlineArrowUpTray className="mx-auto mb-3 text-4xl text-ink-ghost" />
+                <p className="mb-1 text-sm text-ink-body">
+                  Drop an Excel file here, or click to browse
+                </p>
+                <p className="font-mono text-xs text-ink-faint">
+                  .xlsx / .xls with your {activeTab} data
                 </p>
                 <input
                   ref={fileRef}
@@ -146,17 +177,19 @@ export default function BulkUploadPage() {
                   className="hidden"
                   id="bulk-upload"
                 />
-                <Button
-                  onClick={() => fileRef.current?.click()}
-                  isLoading={currentMutation.isPending}
-                >
-                  <HiArrowUpTray className="mr-1" /> Select File
-                </Button>
+                <div className="mt-4">
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+                    isLoading={currentMutation.isPending}
+                  >
+                    <HiOutlineArrowUpTray className="mr-1" /> Select File
+                  </Button>
+                </div>
               </div>
 
               {currentMutation.isPending && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <LoadingSpinner size="sm" /> Processing upload...
+                <div className="flex items-center gap-2 text-sm text-ink-muted">
+                  <LoadingSpinner size="sm" /> Processing upload…
                 </div>
               )}
             </div>
@@ -164,92 +197,93 @@ export default function BulkUploadPage() {
 
           {/* Results */}
           {currentResult && (
-            <Card className="!p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Results</h3>
+            <Card title="Upload Results">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 divide-x divide-paper-hair rounded-card border border-paper-line">
+                  <div className="flex flex-col gap-1.5 px-4 py-3.5">
+                    <span className="font-mono text-meta uppercase text-ink-ghost">Total</span>
+                    <span className="font-mono text-stat font-semibold text-ink-strong">{currentResult.total}</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 px-4 py-3.5">
+                    <span className="font-mono text-meta uppercase text-ink-ghost">Success</span>
+                    <span className="font-mono text-stat font-semibold text-success">{currentResult.success}</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 px-4 py-3.5">
+                    <span className="font-mono text-meta uppercase text-ink-ghost">Failed</span>
+                    <span className="font-mono text-stat font-semibold text-danger">{currentResult.failed}</span>
+                  </div>
+                </div>
 
-              <div className="flex gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Total:</span>
-                  <span className="font-bold">{currentResult.total}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <HiCheckCircle className="text-green-500" />
-                  <span className="text-sm text-gray-500">Success:</span>
-                  <span className="font-bold text-green-600">{currentResult.success}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <HiXCircle className="text-red-500" />
-                  <span className="text-sm text-gray-500">Failed:</span>
-                  <span className="font-bold text-red-600">{currentResult.failed}</span>
-                </div>
+                {currentResult.success > 0 && currentResult.failed === 0 && (
+                  <div className="flex items-center gap-2 rounded-control bg-success-bg px-3 py-3 text-sm text-success">
+                    <HiOutlineCheckCircle className="text-lg" />
+                    All rows imported successfully!
+                  </div>
+                )}
+
+                {currentResult.errors.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-danger">
+                      <HiOutlineExclamationTriangle /> {currentResult.errors.length} error(s) found
+                    </div>
+                    <Table<{ id: number; row: number; field?: string; message: string }>
+                      columns={ERROR_COLUMNS}
+                      template={ERROR_TEMPLATE}
+                      rows={currentResult.errors.map((err, idx) => ({ id: idx, ...err }))}
+                      emptyMessage="No errors."
+                      renderCell={(err, key) => {
+                        switch (key) {
+                          case 'row':
+                            return (
+                              <span className="inline-flex items-center gap-1.5">
+                                <HiOutlineXCircle className="text-danger" />
+                                <span className="font-mono text-xs text-ink-body">{err.row}</span>
+                              </span>
+                            );
+                          case 'field':
+                            return err.field
+                              ? <Badge tone="danger">{err.field}</Badge>
+                              : <span className="text-ink-faint">—</span>;
+                          case 'message':
+                            return <span className="text-sm text-ink-body">{err.message}</span>;
+                          default:
+                            return null;
+                        }
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-
-              {currentResult.success > 0 && currentResult.failed === 0 && (
-                <div className="flex items-center gap-2 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-                  <HiCheckCircle className="text-lg" />
-                  All rows imported successfully!
-                </div>
-              )}
-
-              {currentResult.errors.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-red-600 mb-2">
-                    <HiExclamationTriangle /> {currentResult.errors.length} error(s) found
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-gray-600 uppercase text-xs sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Row</th>
-                          <th className="px-3 py-2 text-left">Field</th>
-                          <th className="px-3 py-2 text-left">Error</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {currentResult.errors.map((err, idx) => (
-                          <tr key={idx} className="text-red-700 bg-red-50">
-                            <td className="px-3 py-2 font-mono">{err.row}</td>
-                            <td className="px-3 py-2">{err.field || '-'}</td>
-                            <td className="px-3 py-2">{err.message}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
             </Card>
           )}
         </div>
 
         {/* Column Reference */}
         <div>
-          <Card className="!p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Column Reference</h3>
-
+          <Card title="Column Reference">
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Required Columns</p>
+                <p className="mb-2 font-mono text-meta uppercase tracking-wider text-ink-ghost">Required Columns</p>
                 <div className="flex flex-wrap gap-1.5">
                   {info.required.map((col) => (
-                    <Badge key={col} color="red">{col}</Badge>
+                    <Badge key={col} tone="danger" dot={false}>{col}</Badge>
                   ))}
                 </div>
               </div>
 
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Optional Columns</p>
+                <p className="mb-2 font-mono text-meta uppercase tracking-wider text-ink-ghost">Optional Columns</p>
                 <div className="flex flex-wrap gap-1.5">
                   {info.optional.map((col) => (
-                    <Badge key={col} color="gray">{col}</Badge>
+                    <Badge key={col} tone="neutral" dot={false}>{col}</Badge>
                   ))}
                 </div>
               </div>
             </div>
 
             {(activeTab === 'services' || activeTab === 'assignments') && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
-                <p className="font-medium mb-1">Lookup Columns</p>
+              <div className="mt-4 rounded-control bg-info-bg px-3 py-3 text-sm text-info">
+                <p className="mb-1 font-semibold">Lookup Columns</p>
                 {activeTab === 'services' && (
                   <p><strong>licensePlate</strong> and <strong>serviceType</strong> are matched by name — use exact values from the system.</p>
                 )}

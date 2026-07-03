@@ -3,9 +3,29 @@ import { useSearchParams } from 'react-router-dom';
 import { useAssignments, useCreateAssignment, useEndAssignment } from '../hooks/useAssignments';
 import { useVehicles } from '../hooks/useVehicles';
 import { useDrivers } from '../hooks/useDrivers';
-import { Button, Input, Select, Badge, Modal, ConfirmDialog, Pagination, LoadingSpinner } from '../components/ui';
+import type { Assignment } from '../api/assignments';
+import { Button, Input, Select, Badge, Table, Modal, ConfirmDialog, Pagination, LoadingSpinner } from '../components/ui';
 import { HiPlus, HiStop } from 'react-icons/hi2';
+import { int } from '../theme/format';
 import toast from 'react-hot-toast';
+
+const STATUS_FILTERS = [
+  { value: '', label: 'All' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'ENDED', label: 'Ended' },
+];
+
+const COLUMNS = [
+  { key: 'vehicle', header: 'Vehicle' },
+  { key: 'driver', header: 'Driver' },
+  { key: 'status', header: 'Status' },
+  { key: 'start', header: 'Start' },
+  { key: 'end', header: 'End' },
+  { key: 'actions', header: '', className: 'text-right' },
+];
+const TEMPLATE = 'minmax(200px,1fr) 170px 120px 120px 120px 90px';
+
+const fmtDate = (val?: string | null) => (val ? new Date(val).toLocaleDateString() : '—');
 
 export default function AssignmentListPage() {
   const [searchParams] = useSearchParams();
@@ -15,7 +35,7 @@ export default function AssignmentListPage() {
   const [endId, setEndId] = useState<string | null>(null);
   const [form, setForm] = useState({ vehicleId: '', driverId: '', startDate: new Date().toISOString().split('T')[0], notes: '' });
 
-  const { data, isLoading } = useAssignments({ page, limit: 20, status: statusFilter || undefined });
+  const { data, isLoading, isFetching } = useAssignments({ page, limit: 20, status: statusFilter || undefined });
   const { data: vehicles } = useVehicles({ limit: 100 });
   const { data: drivers } = useDrivers({ limit: 100 });
   const createAssignment = useCreateAssignment();
@@ -42,54 +62,94 @@ export default function AssignmentListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
-        <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> Create Assignment</Button>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Assignments</h1>
+          <p className="font-mono text-xs text-ink-faint">Vehicle ↔ driver assignments</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isFetching && <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Updating…</span>}
+          <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> Create assignment</Button>
+        </div>
       </div>
 
-      <div className="flex gap-3">
-        <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          options={[{ value: '', label: 'All Statuses' }, { value: 'ACTIVE', label: 'Active' }, { value: 'ENDED', label: 'Ended' }]} />
+      {/* filters */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {STATUS_FILTERS.map((s) => {
+          const active = statusFilter === s.value;
+          return (
+            <button
+              key={s.value || 'all'}
+              onClick={() => { setStatusFilter(s.value); setPage(1); }}
+              className={`rounded-pill border px-3 py-1 text-xs font-semibold transition-colors ${
+                active
+                  ? 'border-primary-200 bg-primary-50 text-primary-700'
+                  : 'border-paper-line text-ink-muted hover:text-ink'
+              }`}
+            >
+              {s.label}
+            </button>
+          );
+        })}
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
         <>
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Vehicle</th>
-                  <th className="px-4 py-3 text-left">Driver</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Start Date</th>
-                  <th className="px-4 py-3 text-left">End Date</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.data?.map((a: any) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">{a.vehicle?.licensePlate} - {a.vehicle?.make} {a.vehicle?.model}</td>
-                    <td className="px-4 py-3">{a.driver?.firstName} {a.driver?.lastName}</td>
-                    <td className="px-4 py-3"><Badge color={a.status === 'ACTIVE' ? 'green' : 'gray'}>{a.status}</Badge></td>
-                    <td className="px-4 py-3">{new Date(a.startDate).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">{a.endDate ? new Date(a.endDate).toLocaleDateString() : '-'}</td>
-                    <td className="px-4 py-3">
-                      {a.status === 'ACTIVE' && (
-                        <Button variant="danger" size="sm" onClick={() => setEndId(a.id)}>
-                          <HiStop className="mr-1" /> End
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {data?.data?.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No assignments found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {data?.pagination && <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />}
+          <Table<Assignment>
+            columns={COLUMNS}
+            template={TEMPLATE}
+            rows={data?.data ?? []}
+            emptyMessage="No assignments found."
+            renderCell={(a, key) => {
+              const row = a as any;
+              switch (key) {
+                case 'vehicle':
+                  return (
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm text-ink-strong">{row.vehicle?.licensePlate || '—'}</p>
+                      <p className="truncate text-xs text-ink-faint">{row.vehicle?.make} {row.vehicle?.model}</p>
+                    </div>
+                  );
+                case 'driver':
+                  return (
+                    <span className="truncate text-sm text-ink-body">
+                      {row.driver ? `${row.driver.firstName} ${row.driver.lastName}` : '—'}
+                    </span>
+                  );
+                case 'status':
+                  return a.status === 'ACTIVE'
+                    ? <Badge tone="success">Active</Badge>
+                    : <Badge tone="neutral">{a.status}</Badge>;
+                case 'start':
+                  return <span className="font-mono text-xs text-ink-body">{fmtDate(a.startDate)}</span>;
+                case 'end':
+                  return <span className="font-mono text-xs text-ink-body">{fmtDate(a.endDate)}</span>;
+                case 'actions':
+                  return a.status === 'ACTIVE' ? (
+                    <div className="flex justify-end">
+                      <Button variant="danger" size="sm" onClick={() => setEndId(a.id)}>
+                        <HiStop className="mr-1" /> End
+                      </Button>
+                    </div>
+                  ) : null;
+                default:
+                  return null;
+              }
+            }}
+          />
+
+          {data?.meta && (
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-xs text-ink-faint">
+                Showing {data.data.length ? (data.meta.page - 1) * data.meta.limit + 1 : 0}
+                –{(data.meta.page - 1) * data.meta.limit + data.data.length} of {int(data.meta.total)}
+              </p>
+              {data.meta.totalPages > 1 && (
+                <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
+              )}
+            </div>
+          )}
         </>
       )}
 

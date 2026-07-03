@@ -1,10 +1,21 @@
 import { useState } from 'react';
 import { useServiceIntervals, useCreateServiceInterval, useUpdateServiceInterval, useServiceTypes } from '../hooks/useServices';
-import { Button, Input, Select, Badge, Modal, LoadingSpinner } from '../components/ui';
+import { Button, Input, Select, Badge, Modal, LoadingSpinner, Table } from '../components/ui';
 import { HiPlus, HiPencil } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 const defaultForm = { serviceTypeId: '', vehicleMake: '', vehicleModel: '', kilometerInterval: '', timeIntervalDays: '' };
+
+const COLUMNS = [
+  { key: 'serviceType', header: 'Service Type' },
+  { key: 'make', header: 'Make' },
+  { key: 'model', header: 'Model' },
+  { key: 'km', header: 'Km Interval', className: 'text-right' },
+  { key: 'days', header: 'Days', className: 'text-right' },
+  { key: 'status', header: 'Status' },
+  { key: 'actions', header: '', className: 'text-right' },
+];
+const TEMPLATE = 'minmax(160px,1fr) 130px 130px 120px 80px 120px 80px';
 
 export default function ServiceIntervalsPage() {
   const [showModal, setShowModal] = useState(false);
@@ -50,44 +61,54 @@ export default function ServiceIntervalsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Service Intervals</h1>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Service Intervals</h1>
+          <p className="font-mono text-xs text-ink-faint">Distance &amp; time-based maintenance schedules</p>
+        </div>
         <Button onClick={() => { setEditItem(null); setForm(defaultForm); setShowModal(true); }}>
-          <HiPlus className="mr-1" /> Add Interval
+          <HiPlus /> Add Interval
         </Button>
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="px-4 py-3 text-left">Service Type</th>
-                <th className="px-4 py-3 text-left">Vehicle Make</th>
-                <th className="px-4 py-3 text-left">Vehicle Model</th>
-                <th className="px-4 py-3 text-left">Kilometer Interval</th>
-                <th className="px-4 py-3 text-left">Time Interval (days)</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data?.data?.map((i: any) => (
-                <tr key={i.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{i.serviceType?.name}</td>
-                  <td className="px-4 py-3">{i.vehicleMake || 'All'}</td>
-                  <td className="px-4 py-3">{i.vehicleModel || 'All'}</td>
-                  <td className="px-4 py-3">{i.kilometerInterval ? `${i.kilometerInterval.toLocaleString()} km` : '-'}</td>
-                  <td className="px-4 py-3">{i.timeIntervalDays || '-'}</td>
-                  <td className="px-4 py-3"><Badge color={i.isActive ? 'green' : 'red'}>{i.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => openEdit(i)} className="text-primary-600 hover:text-primary-800"><HiPencil /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={COLUMNS}
+          template={TEMPLATE}
+          rows={data?.data ?? []}
+          emptyMessage="No service intervals found."
+          renderCell={(i: any, key) => {
+            switch (key) {
+              case 'serviceType':
+                return <span className="text-sm font-semibold text-ink">{i.serviceType?.name}</span>;
+              case 'make':
+                return <span className="text-sm text-ink-body">{i.vehicleMake || 'All'}</span>;
+              case 'model':
+                return <span className="text-sm text-ink-body">{i.vehicleModel || 'All'}</span>;
+              case 'km':
+                return <span className="font-mono text-xs text-ink-body">{i.kilometerInterval ? `${i.kilometerInterval.toLocaleString()} km` : '—'}</span>;
+              case 'days':
+                return <span className="font-mono text-xs text-ink-body">{i.timeIntervalDays || '—'}</span>;
+              case 'status':
+                return <Badge tone={i.isActive ? 'success' : 'neutral'}>{i.isActive ? 'Active' : 'Inactive'}</Badge>;
+              case 'actions':
+                return (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => openEdit(i)}
+                      className="rounded-control p-1.5 text-ink-muted hover:bg-paper-sunken hover:text-primary-600"
+                      aria-label="Edit interval"
+                    >
+                      <HiPencil />
+                    </button>
+                  </div>
+                );
+              default:
+                return null;
+            }
+          }}
+        />
       )}
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditItem(null); }}

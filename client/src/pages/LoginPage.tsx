@@ -1,8 +1,8 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button, Input } from '../components/ui';
-import { HiTruck } from 'react-icons/hi2';
+import { Button, Input, Card } from '../components/ui';
+import { HiOutlineBolt } from 'react-icons/hi2';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,47 +27,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-full mb-4">
-            <HiTruck className="text-3xl text-primary-600" />
+    <div className="min-h-screen bg-paper-bg flex items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-6">
+        {/* wordmark — matches Sidebar */}
+        <div className="flex items-center justify-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-control bg-primary-500 text-white">
+            <HiOutlineBolt className="text-xl" />
+          </span>
+          <div className="leading-tight">
+            <p className="text-base font-bold text-ink">MNC Fleet</p>
+            <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Console</p>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Fleet Management</h1>
-          <p className="text-gray-500 mt-1">Sign in to your account</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-            {error}
+        <Card>
+          <div className="mb-5">
+            <h1 className="text-lg font-bold text-ink">Sign in</h1>
+            <p className="mt-0.5 text-sm text-ink-muted">Access your fleet console</p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@fleet.com"
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
-          <Button type="submit" className="w-full" isLoading={loading}>
-            Sign In
-          </Button>
-        </form>
+          {error && (
+            <div className="mb-4 rounded-control bg-danger-bg px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          )}
 
-        <div className="mt-6 text-center text-xs text-gray-400">
-          <p>Demo: admin@fleet.com / password123</p>
-        </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@fleet.com"
+              required
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+            <Button type="submit" className="w-full" isLoading={loading}>
+              Sign In
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="font-mono text-xs text-ink-ghost">Demo: admin@fleet.com / password123</p>
+          </div>
+        </Card>
       </div>
     </div>
   );

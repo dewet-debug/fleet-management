@@ -1,0 +1,1306 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "fleetIntegration fleet-integration-gateway api"
+  },
+  "servers": [
+    {
+      "url": "https://node.bolt.eu/fleet-integration-gateway",
+      "description": "Live environment"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/fleetIntegration/v1/test": {
+      "post": {
+        "operationId": "fleetIntegrationV1Test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetIntegration.GetMockDataRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint just for testing purposes.\nIf the request is made correctly it should respond with an OK response.\n<br>\n<br>\nExpects a request body containing:\n<br>\n`start_ts` - unix timestamp to find orders which created time is after this timestamp.\n<br>\n`end_ts` - unix timestamp to find orders which created time is before this timestamp.\n<br>\n`company_ids` - company ID-s for which you want to find orders for.\n<br>",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    },
+    "/fleetIntegration/v1/getFleetOrders": {
+      "post": {
+        "operationId": "fleetIntegrationV1GetFleetOrders",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetIntegration.GetFleetOrdersRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetIntegration.GetFleetOrdersResponse"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint to request orders data of a company filtered by time range. By default the response is sorted by order creation time.\nIf the request is made correctly it responds with a list of orders.\n<br>\n<br>\nExpects a request body containing:\n<br>\n`company_id` - company ID for which you want to find orders for.\n<br>\n`company_ids` - company ID-s for which you want to find orders for. First one will be used in case company_id is not provided.\n<br>\n`limit` - the amount of records received per request. For pagination. Must be a number between 1 and 1000.\n<br>\n`offset` - the number of records to skip before returning records. For pagination.\n<br>\n`start_ts` - unix timestamp to find orders which time_range_filter_type time is after this timestamp.\n<br>\n`end_ts` - unix timestamp to find orders which time_range_filter_type time is before this timestamp.\n<br>\n`time_range_filter_type` - optional. By default, rides are filtered by creation date. To filter by the date and time when fares were finalized, set this parameter to PRICE_REVIEW.\n<br>\nThrows:\n<br>\n**498805 - INVALID_START_DATE** The start date is before allowed date.\n\n**498806 - INVALID_DATE_RANGE** Date range is too long.\n\n**498809 - COMPANY_NOT_ACTIVE** Company is not active anymore.\n\n**498810 - COMPANY_NOT_ALLOWED** Cannot retrieve details from company.",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    },
+    "/fleetIntegration/v1/getFleetStateLogs": {
+      "post": {
+        "operationId": "fleetIntegrationV1GetFleetStateLogs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetIntegration.GetCompanyPageWithTimerangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetIntegration.GetFleetStateLogsResponse"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint to request fleet drivers state logs filtered by time range, by default the response is ordered by state created time.\nIf the request is made correctly it responds with a list of fleet driver state logs.\n<br>\n<br>\nExpects a request body containing:\n<br>\n`limit` - the amount of state logs received per request. For pagination. Must be a number between 1 and 1000.\n<br>\n`offset` - the number of records to skip before returning records. For pagination.\n<br>\n`start_ts` - unix timestamp to find state logs which created time is after this timestamp.\n<br>\n`end_ts` - unix timestamp to find state logs which created time is before this timestamp.\n<br>\n`company_id` - company ID for which you want to find driver state logs for.\n<br>\nThrows:\n<br>\n**498805 - INVALID_START_DATE** The start date is before allowed date.\n\n**498806 - INVALID_DATE_RANGE** Date range is too long.\n\n**498807 - COMPANY_NOT_FOUND** The company in the request doesn't exist.\n\n**498810 - COMPANY_NOT_ALLOWED** User does not have access to the company in the request.",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    },
+    "/fleetIntegration/v1/getDrivers": {
+      "post": {
+        "operationId": "fleetIntegrationV1GetDrivers",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetIntegration.GetFleetDriversRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetIntegration.GetFleetDriversResponse"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint to request fleet drivers filtered by time range, portal status and/or search keyword. By default the response is ordered by state created time.\nIf the request is made correctly it responds with a list of fleet drivers.\n<br>\n<br>\nExpects a request body containing:\n<br>\n`company_id` - company ID for which you want to find drivers for.\n<br>\n`limit` - the amount of drivers received per request. For pagination. Must be a number between 1 and 1000.\n<br>\n`offset` - the number of records to skip before returning records. For pagination.\n<br>\n`start_ts` - unix timestamp to find drivers which created time is after this timestamp.\n<br>\n`end_ts` - unix timestamp to find drivers which created time is before this timestamp.\n<br>\n`portal_status` - Status filter for driver. Optional.\n<br>\n`search` - Keyword filter for driver names. Optional.\n<br>\nThrows:\n<br>\n**498805 - INVALID_START_DATE** The start date is before allowed date.\n\n**498806 - INVALID_DATE_RANGE** Date range is too long.\n\n**498807 - COMPANY_NOT_FOUND** The company in the request doesn't exist.\n\n**498809 - COMPANIES_NOT_ACTIVE** The company is not active anymore.",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    },
+    "/fleetIntegration/v1/getCompanies": {
+      "get": {
+        "operationId": "fleetIntegrationV1GetCompanies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetIntegration.GetFleetOwnerCompaniesResponse"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint that returns a list of company ID-s that the authenticated user has access to.\n<br>\n<br>\nDoesn't expect a request body.",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    },
+    "/fleetIntegration/v1/getVehicles": {
+      "post": {
+        "operationId": "fleetIntegrationV1GetVehicles",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetIntegration.GetFleetVehiclesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetIntegration.GetFleetVehiclesResponse"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "message",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Endpoint to request fleet vehicles filtered by time range, portal status and/or search keyword.\nIf the request is made correctly it responds with a list of fleet vehicles.\n<br>\n<br>\nExpects a request body containing:\n<br>\n`company_id` - company ID for which you want to find vehicles for.\n<br>\n`limit` - the amount of vehicles received per request. For pagination. Must be a number between 1 and 100.\n<br>\n`offset` - the number of records to skip before returning records. For pagination.\n<br>\n`start_ts` - unix timestamp to find vehicles which created time is after this timestamp.\n<br>\n`end_ts` - unix timestamp to find vehicles which created time is before this timestamp.\n<br>\n`portal_status` - Status filter for vehicles. Optional.\n<br>\n`search` - Keyword filter for vehicles names. Optional.\n<br>\nThrows:\n<br>\n**498805 - INVALID_START_DATE** The start date is before allowed date.\n\n**498806 - INVALID_DATE_RANGE** Date range is too long.\n\n**498807 - COMPANY_NOT_FOUND** The company in the request doesn't exist.\n\n**498809 - COMPANIES_NOT_ACTIVE** The company is not active anymore.",
+        "tags": [
+          "public-api-doc"
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "FleetIntegration.Pager": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "number",
+            "format": "int32",
+            "description": "min length: 0, max length: 2147483647\n"
+          },
+          "limit": {
+            "type": "number",
+            "format": "int32",
+            "description": "min length: 1, max length: 1000\n"
+          }
+        },
+        "required": [
+          "offset",
+          "limit"
+        ]
+      },
+      "FleetIntegration.GetMockDataRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FleetIntegration.Pager"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "company_ids": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "Custom type: \"company_id\""
+                }
+              },
+              "start_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              },
+              "end_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              }
+            },
+            "required": [
+              "company_ids",
+              "start_ts",
+              "end_ts"
+            ]
+          }
+        ]
+      },
+      "FleetIntegration.GetFleetOrdersRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FleetIntegration.Pager"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "company_ids": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "format": "Custom type: \"company_id\""
+                }
+              },
+              "company_id": {
+                "type": "number",
+                "format": "Custom type: \"company_id\""
+              },
+              "start_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              },
+              "end_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              },
+              "time_range_filter_type": {
+                "$ref": "#/components/schemas/FleetIntegration.TimeRangeFilterType"
+              }
+            },
+            "required": [
+              "company_ids",
+              "start_ts",
+              "end_ts"
+            ]
+          }
+        ]
+      },
+      "FleetIntegration.TimeRangeFilterType": {
+        "type": "string",
+        "enum": [
+          "price_review",
+          "created"
+        ],
+        "x-enum-varnames": [
+          "PRICE_REVIEW",
+          "CREATED"
+        ]
+      },
+      "FleetIntegration.GetFleetOrdersResponse": {
+        "type": "object",
+        "properties": {
+          "company_id": {
+            "type": "number",
+            "format": "Custom type: \"company_id\""
+          },
+          "company_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "total_orders": {
+            "type": "number"
+          },
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.FleetOrder"
+            }
+          }
+        },
+        "required": [
+          "company_id",
+          "company_name",
+          "total_orders",
+          "orders"
+        ]
+      },
+      "FleetIntegration.FleetOrder": {
+        "type": "object",
+        "properties": {
+          "order_reference": {
+            "type": "string"
+          },
+          "driver_name": {
+            "type": "string"
+          },
+          "driver_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "partner_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "driver_phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment_method": {
+            "type": "string",
+            "nullable": true
+          },
+          "payment_confirmed_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_created_timestamp": {
+            "type": "number"
+          },
+          "order_status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FleetIntegration.OrderTryState"
+              },
+              {
+                "$ref": "#/components/schemas/FleetIntegration.OrderTryStateCustom"
+              }
+            ]
+          },
+          "driver_cancelled_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicle_model": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicle_license_plate": {
+            "type": "string",
+            "nullable": true
+          },
+          "price_review_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "pickup_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "destination_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "order_stops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.OrderStop"
+            }
+          },
+          "ride_distance": {
+            "type": "number",
+            "nullable": true
+          },
+          "road_distance_at_matching": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_accepted_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_cancelled_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_no_show_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_pickup_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_drop_off_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_finished_timestamp": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_price": {
+            "$ref": "#/components/schemas/FleetIntegration.OrderPriceData"
+          },
+          "is_scheduled": {
+            "type": "boolean"
+          },
+          "category_info": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FleetIntegration.SearchCategoryInfo"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "order_reference",
+          "driver_name",
+          "driver_uuid",
+          "partner_uuid",
+          "driver_phone",
+          "payment_method",
+          "payment_confirmed_timestamp",
+          "order_created_timestamp",
+          "order_status",
+          "driver_cancelled_reason",
+          "vehicle_model",
+          "vehicle_license_plate",
+          "price_review_reason",
+          "pickup_address",
+          "destination_address",
+          "ride_distance",
+          "road_distance_at_matching",
+          "order_accepted_timestamp",
+          "order_cancelled_timestamp",
+          "order_no_show_timestamp",
+          "order_pickup_timestamp",
+          "order_drop_off_timestamp",
+          "order_finished_timestamp",
+          "order_price",
+          "is_scheduled",
+          "category_info"
+        ]
+      },
+      "FleetIntegration.OrderTryState": {
+        "type": "string",
+        "enum": [
+          "driver_booking",
+          "waiting_driver_confirmation",
+          "client_cancelled",
+          "driver_did_not_respond",
+          "driver_rejected",
+          "driver_accepted",
+          "driver_arrived_to_client",
+          "client_did_not_show",
+          "driving_with_client",
+          "arrived_to_destination",
+          "finished",
+          "payment_booking_failed"
+        ],
+        "x-enum-varnames": [
+          "DRIVER_BOOKING",
+          "WAITING_DRIVER_CONFIRMATION",
+          "CLIENT_CANCELLED",
+          "DRIVER_DID_NOT_RESPOND",
+          "DRIVER_REJECTED",
+          "DRIVER_ACCEPTED",
+          "DRIVER_ARRIVED_TO_CLIENT",
+          "CLIENT_DID_NOT_SHOW",
+          "DRIVING_WITH_CLIENT",
+          "ARRIVED_TO_DESTINATION",
+          "FINISHED",
+          "PAYMENT_BOOKING_FAILED"
+        ]
+      },
+      "FleetIntegration.OrderTryStateCustom": {
+        "type": "string",
+        "enum": [
+          "driver_cancelled_after_accept"
+        ],
+        "x-enum-varnames": [
+          "DRIVER_CANCELLED_AFTER_ACCEPT"
+        ]
+      },
+      "FleetIntegration.OrderStop": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FleetIntegration.OrderStopType"
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "lng": {
+            "type": "number"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "real_lng": {
+            "type": "number",
+            "nullable": true
+          },
+          "real_lat": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "address",
+          "lng",
+          "lat",
+          "real_lng",
+          "real_lat"
+        ]
+      },
+      "FleetIntegration.OrderStopType": {
+        "type": "string",
+        "enum": [
+          "pickup",
+          "dropoff",
+          "waypoint",
+          "change_point"
+        ],
+        "x-enum-varnames": [
+          "PICKUP",
+          "DROPOFF",
+          "WAYPOINT",
+          "CHANGE_POINT"
+        ]
+      },
+      "FleetIntegration.OrderPriceData": {
+        "type": "object",
+        "properties": {
+          "ride_price": {
+            "type": "number",
+            "nullable": true
+          },
+          "booking_fee": {
+            "type": "number",
+            "nullable": true
+          },
+          "toll_fee": {
+            "type": "number",
+            "nullable": true
+          },
+          "cancellation_fee": {
+            "type": "number",
+            "nullable": true
+          },
+          "tip": {
+            "type": "number",
+            "nullable": true
+          },
+          "net_earnings": {
+            "type": "number",
+            "nullable": true
+          },
+          "cash_discount": {
+            "type": "number",
+            "nullable": true
+          },
+          "in_app_discount": {
+            "type": "number",
+            "nullable": true
+          },
+          "commission": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ride_price",
+          "booking_fee",
+          "toll_fee",
+          "cancellation_fee",
+          "tip",
+          "net_earnings",
+          "cash_discount",
+          "in_app_discount",
+          "commission"
+        ]
+      },
+      "FleetIntegration.SearchCategoryInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "seats": {
+            "type": "number"
+          },
+          "vehicle_type": {
+            "$ref": "#/components/schemas/FleetIntegration.VehicleType"
+          }
+        },
+        "required": [
+          "name",
+          "seats",
+          "vehicle_type"
+        ]
+      },
+      "FleetIntegration.VehicleType": {
+        "type": "string",
+        "enum": [
+          "car",
+          "motorbike",
+          "scooter",
+          "bicycle",
+          "pedestrian",
+          "ebike"
+        ],
+        "x-enum-varnames": [
+          "CAR",
+          "MOTORBIKE",
+          "SCOOTER",
+          "BICYCLE",
+          "PEDESTRIAN",
+          "EBIKE"
+        ]
+      },
+      "FleetIntegration.GetCompanyPageWithTimerangeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FleetIntegration.Pager"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "company_id": {
+                "type": "number",
+                "format": "Custom type: \"company_id\""
+              },
+              "start_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              },
+              "end_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              }
+            },
+            "required": [
+              "company_id",
+              "start_ts",
+              "end_ts"
+            ]
+          }
+        ]
+      },
+      "FleetIntegration.GetFleetStateLogsResponse": {
+        "type": "object",
+        "properties": {
+          "state_logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.DriverStateLogRow"
+            }
+          },
+          "total_rows": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "state_logs",
+          "total_rows"
+        ]
+      },
+      "FleetIntegration.DriverStateLogRow": {
+        "type": "object",
+        "properties": {
+          "driver_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicle_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "created": {
+            "type": "number"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FleetIntegration.DriverState"
+          },
+          "lat": {
+            "type": "number",
+            "nullable": true
+          },
+          "lng": {
+            "type": "number",
+            "nullable": true
+          },
+          "active_order": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FleetIntegration.DriverStateLogActiveOrder"
+              }
+            ],
+            "nullable": true
+          },
+          "active_categories": {
+            "$ref": "#/components/schemas/FleetIntegration.InternalSearchCategoriesResponse"
+          }
+        },
+        "required": [
+          "driver_uuid",
+          "vehicle_uuid",
+          "created",
+          "state",
+          "lat",
+          "lng",
+          "active_order",
+          "active_categories"
+        ]
+      },
+      "FleetIntegration.DriverState": {
+        "type": "string",
+        "enum": [
+          "inactive",
+          "waiting_orders",
+          "has_order",
+          "busy"
+        ],
+        "x-enum-varnames": [
+          "INACTIVE",
+          "WAITING_FOR_ORDERS",
+          "HAS_ORDER",
+          "BUSY"
+        ]
+      },
+      "FleetIntegration.DriverStateLogActiveOrder": {
+        "type": "object",
+        "properties": {
+          "order_id": {
+            "type": "number",
+            "nullable": true
+          },
+          "order_reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "pickup_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "destination_address": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "order_id",
+          "order_reference",
+          "pickup_address",
+          "destination_address"
+        ]
+      },
+      "FleetIntegration.InternalSearchCategoriesResponse": {
+        "type": "object",
+        "properties": {
+          "main": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FleetIntegration.InternalSearchCategory"
+              }
+            ],
+            "nullable": true
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.InternalSearchCategory"
+            }
+          }
+        },
+        "required": [
+          "main",
+          "list"
+        ]
+      },
+      "FleetIntegration.InternalSearchCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "wait_and_save_proxy_group": {
+            "type": "string"
+          },
+          "selected": {
+            "type": "boolean"
+          },
+          "opt_out_disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "group",
+          "selected",
+          "opt_out_disabled"
+        ]
+      },
+      "FleetIntegration.GetFleetDriversRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FleetIntegration.GetCompanyPageWithTimerangeRequest"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "portal_status": {
+                "$ref": "#/components/schemas/FleetIntegration.EntityPortalStatus"
+              },
+              "search": {
+                "type": "string",
+                "description": "min length: 1, max length: 255\n"
+              }
+            }
+          }
+        ]
+      },
+      "FleetIntegration.EntityPortalStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "blocked",
+          "deactivated"
+        ],
+        "x-enum-varnames": [
+          "Active",
+          "Blocked",
+          "Deactivated"
+        ]
+      },
+      "FleetIntegration.GetFleetDriversResponse": {
+        "type": "object",
+        "properties": {
+          "drivers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.FleetDriver"
+            }
+          }
+        },
+        "required": [
+          "drivers"
+        ]
+      },
+      "FleetIntegration.FleetDriver": {
+        "type": "object",
+        "properties": {
+          "driver_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "partner_uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "first_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/FleetIntegration.PublicStatus"
+          },
+          "has_cash_payment": {
+            "type": "boolean"
+          },
+          "suspension_reason": {
+            "type": "string"
+          },
+          "driver_score": {
+            "type": "number",
+            "nullable": true
+          },
+          "driver_rating": {
+            "type": "number",
+            "nullable": true
+          },
+          "active_categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inactive_categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "active_vehicle": {
+            "$ref": "#/components/schemas/FleetIntegration.FleetDriverActiveVehicle"
+          },
+          "smart_acceptance_settings": {
+            "$ref": "#/components/schemas/FleetIntegration.DriverSmartAcceptanceSettings"
+          },
+          "eligible_for_scheduled_ride": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "driver_uuid",
+          "partner_uuid",
+          "first_name",
+          "last_name",
+          "email",
+          "phone",
+          "state",
+          "has_cash_payment",
+          "driver_score",
+          "driver_rating",
+          "active_categories",
+          "inactive_categories",
+          "eligible_for_scheduled_ride"
+        ]
+      },
+      "FleetIntegration.PublicStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "suspended",
+          "deactivated"
+        ],
+        "x-enum-varnames": [
+          "ACTIVE",
+          "SUSPENDED",
+          "DEACTIVATED"
+        ]
+      },
+      "FleetIntegration.FleetDriverActiveVehicle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "format": "Custom type: \"car_id\""
+          },
+          "model": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "reg_number": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string",
+            "nullable": true
+          },
+          "uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "$ref": "#/components/schemas/FleetIntegration.PublicStatus"
+          },
+          "suspension_reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "year",
+          "reg_number",
+          "vin",
+          "uuid",
+          "state"
+        ]
+      },
+      "FleetIntegration.DriverSmartAcceptanceSettings": {
+        "type": "object",
+        "properties": {
+          "pickup_distance_m": {
+            "type": "number"
+          },
+          "price_per_km": {
+            "type": "number"
+          },
+          "payment_methods": {
+            "$ref": "#/components/schemas/FleetIntegration.SmartAcceptancePaymentMethod"
+          }
+        },
+        "required": [
+          "pickup_distance_m",
+          "price_per_km",
+          "payment_methods"
+        ]
+      },
+      "FleetIntegration.SmartAcceptancePaymentMethod": {
+        "type": "object",
+        "properties": {
+          "card_enabled": {
+            "type": "boolean"
+          },
+          "cash_enabled": {
+            "type": "boolean"
+          },
+          "in_app_enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "card_enabled",
+          "cash_enabled",
+          "in_app_enabled"
+        ]
+      },
+      "FleetIntegration.GetFleetOwnerCompaniesResponse": {
+        "type": "object",
+        "properties": {
+          "company_ids": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "Custom type: \"company_id\""
+            }
+          }
+        },
+        "required": [
+          "company_ids"
+        ]
+      },
+      "FleetIntegration.GetFleetVehiclesRequest": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "offset": {
+                "type": "number",
+                "format": "int32",
+                "description": "min length: 0, max length: 2147483647\n"
+              },
+              "company_id": {
+                "type": "number",
+                "format": "Custom type: \"company_id\""
+              },
+              "start_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              },
+              "end_ts": {
+                "type": "number",
+                "format": "unix timestamp"
+              }
+            },
+            "required": [
+              "offset",
+              "company_id",
+              "start_ts",
+              "end_ts"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "number",
+                "format": "int32",
+                "description": "min length: 1, max length: 100\n"
+              },
+              "portal_status": {
+                "$ref": "#/components/schemas/FleetIntegration.EntityPortalStatus"
+              },
+              "search": {
+                "type": "string",
+                "description": "min length: 1, max length: 255\n"
+              }
+            },
+            "required": [
+              "limit"
+            ]
+          }
+        ]
+      },
+      "FleetIntegration.GetFleetVehiclesResponse": {
+        "type": "object",
+        "properties": {
+          "vehicles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetIntegration.FleetVehicle"
+            }
+          }
+        },
+        "required": [
+          "vehicles"
+        ]
+      },
+      "FleetIntegration.FleetVehicle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "format": "Custom type: \"car_id\""
+          },
+          "model": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "seats": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "car_transport_licence_number": {
+            "type": "string",
+            "description": "min length: 0, max length: 50\n",
+            "nullable": true
+          },
+          "reg_number": {
+            "type": "string"
+          },
+          "vin": {
+            "type": "string",
+            "nullable": true
+          },
+          "uuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "eligible_category_groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "state": {
+            "$ref": "#/components/schemas/FleetIntegration.PublicStatus"
+          },
+          "suspension_reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "model",
+          "year",
+          "seats",
+          "color",
+          "car_transport_licence_number",
+          "reg_number",
+          "vin",
+          "uuid",
+          "eligible_category_groups",
+          "state",
+          "suspension_reason"
+        ]
+      }
+    }
+  }
+}

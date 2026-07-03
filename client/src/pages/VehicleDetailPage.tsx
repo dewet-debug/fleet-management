@@ -1,14 +1,55 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import clsx from 'clsx';
 import { useVehicle, useUpdateVehicle, useDeleteVehicle, useUpdateKilometers, useVehicleCosts } from '../hooks/useVehicles';
-import { Card, Badge, Button, Input, Select, Modal, ConfirmDialog, LoadingSpinner } from '../components/ui';
-import { HiArrowLeft, HiPencil, HiTrash } from 'react-icons/hi2';
+import { useBoltTrips } from '../hooks/useBolt';
+import type { BoltTrip } from '../api/bolt';
+import { Card, Stat, Badge, StatusBadge, Table, Button, Input, Select, Modal, ConfirmDialog, LoadingSpinner } from '../components/ui';
+import { HiOutlineArrowLeft, HiPencil, HiTrash } from 'react-icons/hi2';
 import { formatCurrency, CURRENCY_OPTIONS } from '../utils/currency';
+import { zar, km, int } from '../theme/format';
 import toast from 'react-hot-toast';
 
-const statusColors: Record<string, 'green' | 'yellow' | 'red' | 'gray'> = {
-  ACTIVE: 'green', IN_SERVICE: 'yellow', OUT_OF_SERVICE: 'red', RETIRED: 'gray',
-};
+/** label–value row for the Overview info blocks */
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1.5">
+      <dt className="text-sm text-ink-muted">{label}</dt>
+      <dd className="text-right font-mono text-sm text-ink-strong">{value ?? '—'}</dd>
+    </div>
+  );
+}
+
+/** Signal-styled cost table (mono numbers, sunken header, hairline dividers) */
+function DataTable({ headers, rows, empty }: { headers: string[]; rows: React.ReactNode[][]; empty: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-paper-hair bg-paper-sunken font-mono text-meta uppercase tracking-wide text-ink-ghost">
+            {headers.map((h, i) => (
+              <th key={i} className={clsx('px-4 py-2.5 font-normal', i > 0 ? 'text-right' : 'text-left')}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 && (
+            <tr><td colSpan={headers.length} className="px-4 py-8 text-center text-ink-faint">{empty}</td></tr>
+          )}
+          {rows.map((cells, ri) => (
+            <tr key={ri} className="border-b border-paper-hair last:border-0 hover:bg-paper-sunken">
+              {cells.map((c, ci) => (
+                <td key={ci} className={clsx('px-4 py-3', ci > 0 ? 'text-right font-mono text-ink-strong' : 'text-ink-body')}>{c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const fmtDate = (val?: string | null) => (val ? new Date(val).toLocaleDateString() : '—');
 
 export default function VehicleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -25,8 +66,12 @@ export default function VehicleDetailPage() {
   const [kilometers, setKilometers] = useState('');
   const [editForm, setEditForm] = useState<any>({});
 
+  const { data: boltTrips } = useBoltTrips({ search: vehicle?.licensePlate, limit: 6 });
+
   if (isLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
-  if (!vehicle) return <p className="text-center text-gray-500 py-12">Vehicle not found</p>;
+  if (!vehicle) return <p className="py-12 text-center text-ink-faint">Vehicle not found</p>;
+
+  const v = vehicle as any;
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,287 +108,296 @@ export default function VehicleDetailPage() {
     { key: 'services', label: 'Service History' },
   ] as const;
 
+  const money = (amount: number | null | undefined) =>
+    amount != null ? formatCurrency(amount, v.currency) : '—';
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link to="/vehicles" className="text-gray-500 hover:text-gray-700"><HiArrowLeft className="text-xl" /></Link>
+      {/* header */}
+      <div className="flex items-start gap-4">
+        <Link to="/vehicles" className="mt-1 text-ink-muted hover:text-ink">
+          <HiOutlineArrowLeft className="text-xl" />
+        </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{vehicle.make} {vehicle.model} ({vehicle.year})</h1>
-          <p className="text-gray-500">{vehicle.licensePlate} &middot; VIN: {vehicle.vin}</p>
+          <h1 className="text-xl font-bold text-ink">
+            {v.make} {v.model} <span className="font-mono text-ink-muted">{v.year}</span>
+          </h1>
+          <p className="font-mono text-xs text-ink-faint">{v.licensePlate} · VIN {v.vin}</p>
         </div>
-        <Badge color={statusColors[vehicle.status]}>{vehicle.status.replace('_', ' ')}</Badge>
-        <Button variant="secondary" size="sm" onClick={() => { setEditForm(vehicle); setShowEdit(true); }}>
-          <HiPencil className="mr-1" /> Edit
-        </Button>
-        <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
-          <HiTrash className="mr-1" /> Delete
-        </Button>
+        <div className="flex items-center gap-2">
+          <StatusBadge kind="vehicle" value={v.status} />
+          <Button variant="secondary" size="sm" onClick={() => { setEditForm(vehicle); setShowEdit(true); }}>
+            <HiPencil /> Edit
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setShowDelete(true)}>
+            <HiTrash /> Delete
+          </Button>
+        </div>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4">
+      {/* tab bar */}
+      <div className="border-b border-paper-line">
+        <nav className="flex gap-6">
           {tabs.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                tab === t.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>{t.label}</button>
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={clsx(
+                '-mb-px border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
+                tab === t.key
+                  ? 'border-primary-500 text-primary-700'
+                  : 'border-transparent text-ink-muted hover:text-ink-body'
+              )}
+            >
+              {t.label}
+            </button>
           ))}
         </nav>
       </div>
 
+      {/* OVERVIEW */}
       {tab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card title="Vehicle Details">
-            <dl className="space-y-3 text-sm">
-              {[
-                ['Color', vehicle.color],
-                ['Fuel Type', vehicle.fuelType],
-                ['Odometer', `${vehicle.currentKilometers?.toLocaleString()} km`],
-                ['Purchase Date', vehicle.purchaseDate ? new Date(vehicle.purchaseDate).toLocaleDateString() : 'N/A'],
-                ['Purchase Price', formatCurrency(vehicle.purchasePrice, vehicle.currency)],
-                ['Currency', vehicle.currency || 'ZAR'],
-              ].map(([label, value]) => (
-                <div key={label as string} className="flex justify-between">
-                  <dt className="text-gray-500">{label}</dt>
-                  <dd className="font-medium text-gray-900">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </Card>
-          <Card title="Update Kilometers">
-            <div className="flex gap-2">
-              <Input type="number" placeholder="New kilometers" value={kilometers} onChange={(e) => setKilometers(e.target.value)} />
-              <Button onClick={handleKilometersUpdate} isLoading={updateKilometers.isPending}>Update</Button>
-            </div>
-            {vehicle.notes && <p className="mt-4 text-sm text-gray-600"><span className="font-medium">Notes:</span> {vehicle.notes}</p>}
-          </Card>
-        </div>
-      )}
-
-      {tab === 'financials' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card title="Lease Information">
-              <dl className="space-y-3 text-sm">
-                {[
-                  ['Fleet Number', vehicle.fleetNumber || 'N/A'],
-                  ['Lease Company', vehicle.leaseCompany || 'N/A'],
-                  ['Agreement No.', vehicle.leaseAgreementNo || 'N/A'],
-                  ['Lease Start', vehicle.leaseStartDate ? new Date(vehicle.leaseStartDate).toLocaleDateString() : 'N/A'],
-                  ['Lease End', vehicle.leaseEndDate ? new Date(vehicle.leaseEndDate).toLocaleDateString() : 'N/A'],
-                  ['Monthly Cost', vehicle.monthlyLeaseCost != null ? formatCurrency(vehicle.monthlyLeaseCost, vehicle.currency) : 'N/A'],
-                  ['Book Value', vehicle.currentBookValue != null ? formatCurrency(vehicle.currentBookValue, vehicle.currency) : 'N/A'],
-                ].map(([label, value]) => (
-                  <div key={label as string} className="flex justify-between">
-                    <dt className="text-gray-500">{label}</dt>
-                    <dd className="font-medium text-gray-900">{value}</dd>
-                  </div>
-                ))}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card title="Identity">
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Color" value={v.color || '—'} />
+                <Field label="Fuel type" value={v.fuelType || '—'} />
+                <Field label="Odometer" value={v.currentKilometers != null ? `${int(v.currentKilometers)} km` : '—'} />
+                <Field label="Purchase date" value={fmtDate(v.purchaseDate)} />
+                <Field label="Purchase price" value={money(v.purchasePrice)} />
+              </dl>
+            </Card>
+            <Card title="Lease">
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Fleet number" value={v.fleetNumber || '—'} />
+                <Field label="Lease company" value={v.leaseCompany || '—'} />
+                <Field label="Agreement no" value={v.leaseAgreementNo || '—'} />
+                <Field label="Start" value={fmtDate(v.leaseStartDate)} />
+                <Field label="End" value={fmtDate(v.leaseEndDate)} />
+                <Field label="Monthly cost" value={money(v.monthlyLeaseCost)} />
+                <Field label="Book value" value={money(v.currentBookValue)} />
               </dl>
             </Card>
             <Card title="Insurance">
-              <dl className="space-y-3 text-sm">
-                {[
-                  ['Provider', vehicle.insuranceProvider || 'N/A'],
-                  ['Policy No.', vehicle.insurancePolicyNo || 'N/A'],
-                  ['Coverage', vehicle.coverageType || 'N/A'],
-                  ['Policy Start', vehicle.policyStartDate ? new Date(vehicle.policyStartDate).toLocaleDateString() : 'N/A'],
-                  ['Policy Expiry', vehicle.policyExpiryDate ? new Date(vehicle.policyExpiryDate).toLocaleDateString() : 'N/A'],
-                  ['Premium', vehicle.premiumAmount != null ? formatCurrency(vehicle.premiumAmount, vehicle.currency) : 'N/A'],
-                ].map(([label, value]) => (
-                  <div key={label as string} className="flex justify-between">
-                    <dt className="text-gray-500">{label}</dt>
-                    <dd className="font-medium text-gray-900">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </Card>
-            <Card title="Registration & Warranty">
-              <dl className="space-y-3 text-sm">
-                {[
-                  ['Registration Expiry', vehicle.registrationExpiry ? new Date(vehicle.registrationExpiry).toLocaleDateString() : 'N/A'],
-                  ['Warranty Expiry', vehicle.warrantyExpiry ? new Date(vehicle.warrantyExpiry).toLocaleDateString() : 'N/A'],
-                ].map(([label, value]) => (
-                  <div key={label as string} className="flex justify-between">
-                    <dt className="text-gray-500">{label}</dt>
-                    <dd className="font-medium text-gray-900">{value}</dd>
-                  </div>
-                ))}
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Provider" value={v.insuranceProvider || '—'} />
+                <Field label="Policy no" value={v.insurancePolicyNo || '—'} />
+                <Field label="Coverage" value={v.coverageType || '—'} />
+                <Field label="Start" value={fmtDate(v.policyStartDate)} />
+                <Field label="Expiry" value={fmtDate(v.policyExpiryDate)} />
+                <Field label="Premium" value={money(v.premiumAmount)} />
               </dl>
             </Card>
           </div>
 
-          {/* Cost Analysis */}
-          <h3 className="text-lg font-semibold text-gray-900 mt-6">Cost Analysis</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="!p-4">
-              <p className="text-2xl font-bold text-gray-900">{costData ? formatCurrency(costData.lifetimeCost, vehicle.currency) : '...'}</p>
-              <p className="text-xs text-gray-500">Lifetime Service Cost</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card title="Update Kilometers">
+              <div className="flex gap-2">
+                <Input type="number" placeholder="New kilometers" value={kilometers} onChange={(e) => setKilometers(e.target.value)} />
+                <Button onClick={handleKilometersUpdate} isLoading={updateKilometers.isPending}>Update</Button>
+              </div>
             </Card>
-            <Card className="!p-4">
-              <p className="text-2xl font-bold text-gray-900">{costData ? costData.lifetimeServices : '...'}</p>
-              <p className="text-xs text-gray-500">Total Services</p>
-            </Card>
-            <Card className="!p-4">
-              <p className="text-2xl font-bold text-gray-900">{costData ? formatCurrency(costData.averageCostPerService, vehicle.currency) : '...'}</p>
-              <p className="text-xs text-gray-500">Avg Cost / Service</p>
-            </Card>
-            <Card className="!p-4">
-              <p className="text-2xl font-bold text-gray-900">{costData ? formatCurrency(costData.costPerKm, vehicle.currency) : '...'}</p>
-              <p className="text-xs text-gray-500">Cost / km</p>
+            <Card title="Notes">
+              <p className="text-sm text-ink-body">{v.notes || <span className="text-ink-faint">No notes recorded.</span>}</p>
             </Card>
           </div>
 
-          {/* Cost by Service Type */}
-          <Card title="Cost by Service Type" className="mt-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Service Type</th>
-                  <th className="px-4 py-3 text-left">Count</th>
-                  <th className="px-4 py-3 text-left">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {costData?.costByServiceType?.map((item: any) => (
-                  <tr key={item.serviceType} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.serviceType}</td>
-                    <td className="px-4 py-3">{item.count}</td>
-                    <td className="px-4 py-3">{formatCurrency(item.totalCost, vehicle.currency)}</td>
-                  </tr>
-                ))}
-                {(!costData?.costByServiceType || costData.costByServiceType.length === 0) && (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No service cost data</td></tr>
-                )}
-              </tbody>
-            </table>
-          </Card>
-
-          {/* Monthly Cost Breakdown */}
-          <Card title="Monthly Cost Breakdown" className="mt-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Month</th>
-                  <th className="px-4 py-3 text-left">Services</th>
-                  <th className="px-4 py-3 text-left">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {costData?.monthlyBreakdown?.map((item: any) => (
-                  <tr key={item.month} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.label}</td>
-                    <td className="px-4 py-3">{item.serviceCount}</td>
-                    <td className="px-4 py-3">{formatCurrency(item.totalCost, vehicle.currency)}</td>
-                  </tr>
-                ))}
-                {(!costData?.monthlyBreakdown || costData.monthlyBreakdown.length === 0) && (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No monthly cost data</td></tr>
-                )}
-              </tbody>
-            </table>
-          </Card>
-
-          {/* Cost by Driver */}
-          <Card title="Cost by Driver" className="mt-4">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Driver</th>
-                  <th className="px-4 py-3 text-left">Services</th>
-                  <th className="px-4 py-3 text-left">Total Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {costData?.costByDriver?.map((item: any) => (
-                  <tr key={item.driverId || 'unassigned'} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{item.driverName}</td>
-                    <td className="px-4 py-3">{item.serviceCount}</td>
-                    <td className="px-4 py-3">{formatCurrency(item.totalCost, vehicle.currency)}</td>
-                  </tr>
-                ))}
-                {(!costData?.costByDriver || costData.costByDriver.length === 0) && (
-                  <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No driver cost data</td></tr>
-                )}
-              </tbody>
-            </table>
+          <Card title="Recent Bolt trips" subtitle={v.licensePlate} bodyClassName="p-0">
+            <Table<BoltTrip>
+              columns={[
+                { key: 'created', header: 'Created' },
+                { key: 'driver', header: 'Driver' },
+                { key: 'status', header: 'Status' },
+                { key: 'distance', header: 'Distance', className: 'text-right' },
+                { key: 'gross', header: 'Gross', className: 'text-right' },
+              ]}
+              template="150px 1fr 128px 96px 96px"
+              rows={boltTrips?.data ?? []}
+              emptyMessage="No Bolt trips for this vehicle."
+              renderCell={(t, key) => {
+                switch (key) {
+                  case 'created':
+                    return <span className="font-mono text-xs text-ink-muted">{new Date(t.orderCreatedAt).toLocaleString('en-ZA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>;
+                  case 'driver':
+                    return <span className="truncate text-sm text-ink-body">{t.driverName || '—'}</span>;
+                  case 'status':
+                    return <StatusBadge kind="bolt" value={t.orderStatus} />;
+                  case 'distance':
+                    return <span className="font-mono text-xs text-ink-body">{t.rideDistanceMeters != null ? km(t.rideDistanceMeters) : '—'}</span>;
+                  case 'gross':
+                    return <span className="font-mono text-xs text-ink-strong">{t.ridePrice != null ? zar(t.ridePrice) : '—'}</span>;
+                  default:
+                    return null;
+                }
+              }}
+            />
           </Card>
         </div>
       )}
 
+      {/* FINANCIALS */}
+      {tab === 'financials' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card title="Lease Information">
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Fleet number" value={v.fleetNumber || '—'} />
+                <Field label="Lease company" value={v.leaseCompany || '—'} />
+                <Field label="Agreement no" value={v.leaseAgreementNo || '—'} />
+                <Field label="Lease start" value={fmtDate(v.leaseStartDate)} />
+                <Field label="Lease end" value={fmtDate(v.leaseEndDate)} />
+                <Field label="Monthly cost" value={money(v.monthlyLeaseCost)} />
+                <Field label="Book value" value={money(v.currentBookValue)} />
+              </dl>
+            </Card>
+            <Card title="Insurance">
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Provider" value={v.insuranceProvider || '—'} />
+                <Field label="Policy no" value={v.insurancePolicyNo || '—'} />
+                <Field label="Coverage" value={v.coverageType || '—'} />
+                <Field label="Policy start" value={fmtDate(v.policyStartDate)} />
+                <Field label="Policy expiry" value={fmtDate(v.policyExpiryDate)} />
+                <Field label="Premium" value={money(v.premiumAmount)} />
+              </dl>
+            </Card>
+            <Card title="Registration & Warranty">
+              <dl className="divide-y divide-paper-hair">
+                <Field label="Registration expiry" value={fmtDate(v.registrationExpiry)} />
+                <Field label="Warranty expiry" value={fmtDate(v.warrantyExpiry)} />
+              </dl>
+            </Card>
+          </div>
+
+          {/* Cost Analysis KPIs */}
+          <Card title="Cost Analysis" bodyClassName="p-0">
+            <div className="grid grid-cols-2 divide-x divide-y divide-paper-hair md:grid-cols-4 md:divide-y-0">
+              <Stat label="Lifetime cost" value={costData ? formatCurrency(costData.lifetimeCost, v.currency) : '—'} />
+              <Stat label="Total services" value={costData ? int(costData.lifetimeServices) : '—'} />
+              <Stat label="Avg cost / service" value={costData ? formatCurrency(costData.averageCostPerService, v.currency) : '—'} />
+              <Stat label="Cost per km" value={costData ? formatCurrency(costData.costPerKm, v.currency) : '—'} />
+            </div>
+          </Card>
+
+          <Card title="Cost by Service Type" bodyClassName="p-0">
+            <DataTable
+              headers={['Service Type', 'Count', 'Total Cost']}
+              empty="No service cost data"
+              rows={(costData?.costByServiceType ?? []).map((item: any) => [
+                item.serviceType,
+                int(item.count),
+                formatCurrency(item.totalCost, v.currency),
+              ])}
+            />
+          </Card>
+
+          <Card title="Monthly Cost Breakdown" bodyClassName="p-0">
+            <DataTable
+              headers={['Month', 'Services', 'Total Cost']}
+              empty="No monthly cost data"
+              rows={(costData?.monthlyBreakdown ?? []).map((item: any) => [
+                item.label,
+                int(item.serviceCount),
+                formatCurrency(item.totalCost, v.currency),
+              ])}
+            />
+          </Card>
+
+          <Card title="Cost by Driver" bodyClassName="p-0">
+            <DataTable
+              headers={['Driver', 'Services', 'Total Cost']}
+              empty="No driver cost data"
+              rows={(costData?.costByDriver ?? []).map((item: any) => [
+                item.driverName,
+                int(item.serviceCount),
+                formatCurrency(item.totalCost, v.currency),
+              ])}
+            />
+          </Card>
+        </div>
+      )}
+
+      {/* ASSIGNMENTS */}
       {tab === 'assignments' && (
-        <Card>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="px-4 py-3 text-left">Driver</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Start Date</th>
-                <th className="px-4 py-3 text-left">End Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {vehicle.assignments?.map((a: any) => (
-                <tr key={a.id}>
-                  <td className="px-4 py-3">{a.driver?.firstName} {a.driver?.lastName}</td>
-                  <td className="px-4 py-3"><Badge color={a.status === 'ACTIVE' ? 'green' : 'gray'}>{a.status}</Badge></td>
-                  <td className="px-4 py-3">{new Date(a.startDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">{a.endDate ? new Date(a.endDate).toLocaleDateString() : '-'}</td>
-                </tr>
-              ))}
-              {(!vehicle.assignments || vehicle.assignments.length === 0) && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">No assignments</td></tr>
-              )}
-            </tbody>
-          </table>
-        </Card>
+        <Table<any>
+          columns={[
+            { key: 'driver', header: 'Driver' },
+            { key: 'status', header: 'Status' },
+            { key: 'start', header: 'Start' },
+            { key: 'end', header: 'End' },
+          ]}
+          template="1fr 140px 150px 150px"
+          rows={v.assignments ?? []}
+          emptyMessage="No assignments"
+          renderCell={(a, key) => {
+            switch (key) {
+              case 'driver':
+                return <span className="text-sm text-ink-body">{a.driver?.firstName} {a.driver?.lastName}</span>;
+              case 'status':
+                return a.status === 'ACTIVE'
+                  ? <Badge tone="success">Active</Badge>
+                  : <Badge tone="neutral">{a.status}</Badge>;
+              case 'start':
+                return <span className="font-mono text-xs text-ink-body">{fmtDate(a.startDate)}</span>;
+              case 'end':
+                return <span className="font-mono text-xs text-ink-body">{fmtDate(a.endDate)}</span>;
+              default:
+                return null;
+            }
+          }}
+        />
       )}
 
+      {/* SERVICE HISTORY */}
       {tab === 'services' && (
-        <Card>
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="px-4 py-3 text-left">Service Type</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Cost</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {vehicle.serviceRecords?.map((s: any) => (
-                <tr key={s.id}>
-                  <td className="px-4 py-3">{s.serviceType?.name || 'N/A'}</td>
-                  <td className="px-4 py-3"><Badge color="blue">{s.status}</Badge></td>
-                  <td className="px-4 py-3">{s.scheduledDate ? new Date(s.scheduledDate).toLocaleDateString() : '-'}</td>
-                  <td className="px-4 py-3">{s.totalCostInclVat ? formatCurrency(s.totalCostInclVat, s.currency) : '-'}</td>
-                  <td className="px-4 py-3">
-                    <Link to={`/services/${s.id}`} className="text-primary-600 hover:text-primary-800">View</Link>
-                  </td>
-                </tr>
-              ))}
-              {(!vehicle.serviceRecords || vehicle.serviceRecords.length === 0) && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No service records</td></tr>
-              )}
-            </tbody>
-          </table>
-        </Card>
+        <Table<any>
+          columns={[
+            { key: 'type', header: 'Service Type' },
+            { key: 'status', header: 'Status' },
+            { key: 'date', header: 'Date' },
+            { key: 'cost', header: 'Cost', className: 'text-right' },
+            { key: 'view', header: '', className: 'text-right' },
+          ]}
+          template="1fr 150px 140px 140px 80px"
+          rows={v.serviceRecords ?? []}
+          emptyMessage="No service records"
+          renderCell={(s, key) => {
+            switch (key) {
+              case 'type':
+                return <span className="text-sm text-ink-body">{s.serviceType?.name || '—'}</span>;
+              case 'status':
+                return <StatusBadge kind="service" value={s.status} />;
+              case 'date':
+                return <span className="font-mono text-xs text-ink-body">{fmtDate(s.scheduledDate)}</span>;
+              case 'cost':
+                return <span className="font-mono text-xs text-ink-strong">{s.totalCostInclVat != null ? formatCurrency(s.totalCostInclVat, s.currency) : '—'}</span>;
+              case 'view':
+                return <Link to={`/services/${s.id}`} className="text-sm font-medium text-primary-600 hover:text-primary-800">View</Link>;
+              default:
+                return null;
+            }
+          }}
+        />
       )}
 
+      {/* Edit modal */}
       <Modal isOpen={showEdit} onClose={() => setShowEdit(false)} title="Edit Vehicle" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Input label="Make" value={editForm.make || ''} onChange={(e) => setEditForm({ ...editForm, make: e.target.value })} />
             <Input label="Model" value={editForm.model || ''} onChange={(e) => setEditForm({ ...editForm, model: e.target.value })} />
             <Input label="Color" value={editForm.color || ''} onChange={(e) => setEditForm({ ...editForm, color: e.target.value })} />
-            <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm" value={editForm.status || ''}
-              onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
-              <option value="ACTIVE">Active</option>
-              <option value="IN_SERVICE">In Service</option>
-              <option value="OUT_OF_SERVICE">Out of Service</option>
-              <option value="RETIRED">Retired</option>
-            </select>
+            <Select
+              label="Status"
+              value={editForm.status || ''}
+              onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+              options={[
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'IN_SERVICE', label: 'In Service' },
+                { value: 'OUT_OF_SERVICE', label: 'Out of Service' },
+                { value: 'RETIRED', label: 'Retired' },
+              ]}
+            />
             <Select label="Currency" value={editForm.currency || 'ZAR'}
               onChange={(e) => setEditForm({ ...editForm, currency: e.target.value })}
               options={CURRENCY_OPTIONS} />
@@ -357,7 +411,7 @@ export default function VehicleDetailPage() {
       </Modal>
 
       <ConfirmDialog isOpen={showDelete} onClose={() => setShowDelete(false)} onConfirm={handleDelete}
-        title="Delete Vehicle" message={`Are you sure you want to delete ${vehicle.make} ${vehicle.model}?`} variant="danger" />
+        title="Delete Vehicle" message={`Are you sure you want to delete ${v.make} ${v.model}?`} variant="danger" />
     </div>
   );
 }

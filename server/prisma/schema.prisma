@@ -74,6 +74,7 @@ model Vehicle {
   serviceRecords          ServiceRecord[]
   vehicleServiceIntervals VehicleServiceInterval[]
   cartrackFleetVehicle    CartrackFleetVehicle?
+  boltTrips               BoltTrip[]
 }
 
 model Driver {
@@ -504,6 +505,206 @@ model CartrackSyncLog {
   errorDetails      String?
   durationMs        Int?
   createdAt         DateTime  @default(now())
+
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// ============================================================
+// A49 INTEGRATION MODELS
+// ============================================================
+
+model A49Driver {
+  id                    String    @id @default(uuid())
+  externalId            String    @unique
+  company               String?
+  licensePlate          String?
+  vehicleType           String?
+  vehicleStatus         String?
+  driverFullName        String
+  driverPersonalCode    String?
+  dateDriverAssigned    DateTime?
+  driverContactNumber   String?
+  driverEmail           String?
+  driverAddress         String?
+  currentOdo            Float?
+  kmYesterday           Float?
+  kmMonthToDate         Float?
+  rawJson               String
+  fetchedAt             DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([licensePlate])
+  @@index([driverFullName])
+}
+
+model A49JobCard {
+  id                          String    @id @default(uuid())
+  jobCardNumber               String    @unique
+  jobCardType                 String?
+  jobCardStatus               String?
+  poEmailSent                 DateTime?
+  quotedTotalsExclVat         Float?
+  poTotalExclVat              Float?
+  poNumber                    String?
+  registrationNumber          String?
+  associatedMake              String?
+  associatedModel             String?
+  lastRecordedOdo             Float?
+  currentOdo                  Float?
+  insuranceRelated            Boolean   @default(false)
+  associatedMerchant          String?
+  jobCardOpenedDate           DateTime?
+  bookedInDate                DateTime?
+  dateQuoteSubmitted          DateTime?
+  poApprovedDate              DateTime?
+  dateRepairStarted           DateTime?
+  dateRepairCompleted         DateTime?
+  jobCardClosedDate           DateTime?
+  repairEtaDate               DateTime?
+  finalInspectionDate         DateTime?
+  daysJobCardBookedIn         Int?
+  daysQuoteSubmitted          Int?
+  daysPoApproved              Int?
+  daysPoSent                  Int?
+  daysInRepair                Int?
+  daysSinceOpenedToClose      Int?
+  totalOemPartPriceExclVat    Float?
+  totalLabourHoursExclVat     Float?
+  totalLabourCostPerHourExclVat Float?
+  totalStripAssembleHoursExclVat Float?
+  totalApprovedOemPartPriceExclVat Float?
+  totalApprovedLabourHoursExclVat Float?
+  totalApprovedLabourCostPerHourExclVat Float?
+  totalApprovedStripAssembleHoursExclVat Float?
+  rawJson                     String
+  fetchedAt                   DateTime  @default(now())
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  @@index([registrationNumber])
+  @@index([jobCardStatus])
+}
+
+model A49SyncLog {
+  id              String    @id @default(uuid())
+  syncType        String
+  status          String
+  triggeredBy     String
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  recordsFetched  Int       @default(0)
+  recordsCreated  Int       @default(0)
+  recordsUpdated  Int       @default(0)
+  recordsErrored  Int       @default(0)
+  errorMessage    String?
+  durationMs      Int?
+  createdAt       DateTime  @default(now())
+
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// ============================================================
+// BOLT FLEET INTEGRATION MODELS
+// Commercial/trip data from the Bolt Fleet Integration API
+// (getFleetOrders). Field names/types mirror the live API payload
+// (see server/src/lib/bolt/fleet-integration-openapi.json), adapted to
+// SQLite: rawJson String (not JSONB), Float (not DECIMAL), DateTime for
+// unix-second timestamps. Joins to the vehicle registry by license plate.
+// ============================================================
+
+model BoltTrip {
+  id                     String    @id @default(uuid())
+  orderReference         String    @unique
+  companyId              Int?
+
+  // Vehicle registry match (by plate, same approach as Cartrack)
+  vehicleLicensePlate    String?
+  vehicleId              String?
+  vehicleModel           String?
+
+  // Driver
+  driverName             String?
+  driverUuid             String?
+  partnerUuid            String?
+  driverPhone            String?
+
+  // Trip
+  orderStatus            String
+  paymentMethod          String?
+  isScheduled            Boolean   @default(false)
+  categoryName           String?
+  categorySeats          Int?
+  categoryVehicleType    String?
+  pickupAddress          String?
+  destinationAddress     String?
+  pickupLat              Float?
+  pickupLng              Float?
+  dropoffLat             Float?
+  dropoffLng             Float?
+  rideDistanceMeters     Float?
+  roadDistanceAtMatching Float?
+
+  // Lifecycle timestamps (unix seconds in the API -> DateTime here)
+  orderCreatedAt         DateTime
+  orderAcceptedAt        DateTime?
+  orderPickupAt          DateTime?
+  orderDropOffAt         DateTime?
+  orderFinishedAt        DateTime?
+  orderCancelledAt       DateTime?
+  orderNoShowAt          DateTime?
+  paymentConfirmedAt     DateTime?
+
+  // Price components (ZAR)
+  ridePrice              Float?
+  bookingFee             Float?
+  tollFee                Float?
+  cancellationFee        Float?
+  tip                    Float?
+  netEarnings            Float?
+  cashDiscount           Float?
+  inAppDiscount          Float?
+  commission             Float?
+  currency               String    @default("ZAR")
+
+  priceReviewReason      String?
+  driverCancelledReason  String?
+
+  rawJson                String
+  syncedAt               DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  @@index([vehicleLicensePlate])
+  @@index([vehicleId])
+  @@index([orderStatus])
+  @@index([orderCreatedAt])
+  @@index([orderFinishedAt])
+}
+
+model BoltSyncLog {
+  id              String    @id @default(uuid())
+  syncType        String
+  status          String
+  triggeredBy     String
+  windowStart     DateTime?
+  windowEnd       DateTime?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  recordsFetched  Int       @default(0)
+  recordsCreated  Int       @default(0)
+  recordsUpdated  Int       @default(0)
+  recordsMatched  Int       @default(0)
+  recordsErrored  Int       @default(0)
+  errorMessage    String?
+  durationMs      Int?
+  createdAt       DateTime  @default(now())
 
   @@index([syncType])
   @@index([status])

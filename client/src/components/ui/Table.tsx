@@ -1,88 +1,64 @@
 import React from 'react';
 import clsx from 'clsx';
 
-interface Column<T> {
-  key: string;
-  header: string;
-  render?: (item: T) => React.ReactNode;
-}
+/**
+ * Table — dense operational table (Signal).
+ * Header is a mono, uppercase, letter-spaced label row; body rows have
+ * hairline dividers and align via a shared grid template. Numerics /
+ * plates / IDs use font-mono so columns line up.
+ *
+ * Pass an explicit grid `template` so header and rows stay in lockstep.
+ * Pair with server-side <Pagination/> (never client "load everything").
+ */
+type Col = { key: string; header: React.ReactNode; className?: string };
 
-interface TableProps<T> {
-  columns: Column<T>[];
-  data: T[];
-  isLoading?: boolean;
-  emptyMessage?: string;
-}
-
-export function Table<T extends Record<string, unknown>>({
+export function Table<T extends { id: string | number }>({
   columns,
-  data,
-  isLoading = false,
-  emptyMessage = 'No data available.',
-}: TableProps<T>) {
+  template,
+  rows,
+  onRowClick,
+  renderCell,
+  emptyMessage = 'No data.',
+}: {
+  columns: Col[];
+  template: string; // e.g. "150px 190px 90px 130px 1fr 60px"
+  rows: T[];
+  onRowClick?: (row: T) => void;
+  renderCell: (row: T, key: string) => React.ReactNode;
+  emptyMessage?: string;
+}) {
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-              >
-                {col.header}
-              </th>
+    <div className="overflow-hidden rounded-card border border-paper-line bg-paper-card">
+      <div className="overflow-x-auto">
+        <div
+          className="grid gap-2 border-b border-paper-hair bg-paper-sunken px-[18px] py-2.5 font-mono text-meta uppercase tracking-wide text-ink-ghost"
+          style={{ gridTemplateColumns: template }}
+        >
+          {columns.map((c) => (
+            <span key={c.key} className={c.className}>{c.header}</span>
+          ))}
+        </div>
+        {rows.length === 0 && (
+          <div className="px-[18px] py-10 text-center text-sm text-ink-faint">{emptyMessage}</div>
+        )}
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            onClick={() => onRowClick?.(row)}
+            className={clsx(
+              'grid items-center gap-2 border-b border-paper-faint px-[18px] py-3',
+              onRowClick && 'cursor-pointer hover:bg-paper-sunken'
+            )}
+            style={{ gridTemplateColumns: template }}
+          >
+            {columns.map((c) => (
+              <div key={c.key} className={clsx('min-w-0', c.className)}>
+                {renderCell(row, c.key)}
+              </div>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
-          {isLoading &&
-            Array.from({ length: 5 }).map((_, rowIdx) => (
-              <tr key={`skeleton-${rowIdx}`}>
-                {columns.map((col) => (
-                  <td key={col.key} className="px-6 py-4">
-                    <div
-                      className={clsx(
-                        'h-4 animate-pulse rounded bg-gray-200',
-                        rowIdx % 2 === 0 ? 'w-3/4' : 'w-1/2'
-                      )}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-
-          {!isLoading && data.length === 0 && (
-            <tr>
-              <td
-                colSpan={columns.length}
-                className="px-6 py-12 text-center text-sm text-gray-500"
-              >
-                {emptyMessage}
-              </td>
-            </tr>
-          )}
-
-          {!isLoading &&
-            data.map((item, rowIdx) => (
-              <tr
-                key={rowIdx}
-                className="transition-colors hover:bg-gray-50"
-              >
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className="whitespace-nowrap px-6 py-4 text-sm text-gray-900"
-                  >
-                    {col.render
-                      ? col.render(item)
-                      : (item[col.key] as React.ReactNode)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-        </tbody>
-      </table>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
