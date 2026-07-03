@@ -47,6 +47,7 @@ export interface BoltTripsSummary {
 
 export interface BoltAnalytics {
   window: { from: string; to: string };
+  previous: { attempts: number; finished: number; gross: number; net: number };
   dailyTrend: { day: string; attempts: number; finished: number; gross: number; net: number; commission: number; fees: number }[];
   paymentMix: { method: string; count: number; gross: number }[];
   funnel: { attempts: number; accepted: number; finished: number; netPaid: number };

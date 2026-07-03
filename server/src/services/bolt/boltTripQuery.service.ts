@@ -184,11 +184,30 @@ export async function getBoltTripsAnalytics(params: { dateFrom?: string; dateTo?
       AND pickupLat IS NOT NULL AND pickupLng IS NOT NULL
     GROUP BY lat, lng ORDER BY count DESC LIMIT 300`;
 
+  // Immediately-preceding equal-length window, for ▲▼ deltas on the dashboard.
+  const windowMs = end.getTime() - start.getTime();
+  const prevEnd = start;
+  const prevStart = new Date(start.getTime() - windowMs);
+  const [prevAttempts, prevFinished] = await Promise.all([
+    prisma.boltTrip.count({ where: { orderCreatedAt: { gte: prevStart, lt: prevEnd } } }),
+    prisma.boltTrip.aggregate({
+      where: { orderCreatedAt: { gte: prevStart, lt: prevEnd }, orderStatus: 'finished' },
+      _count: { _all: true },
+      _sum: { ridePrice: true, netEarnings: true },
+    }),
+  ]);
+
   const num = (v: unknown) => Number(v ?? 0);
   const f = funnelRows[0] ?? { attempts: 0, accepted: 0, finished: 0, netPaid: 0 };
 
   return {
     window: { from: start.toISOString(), to: end.toISOString() },
+    previous: {
+      attempts: prevAttempts,
+      finished: prevFinished._count._all,
+      gross: prevFinished._sum.ridePrice ?? 0,
+      net: prevFinished._sum.netEarnings ?? 0,
+    },
     dailyTrend: dailyTrend.map((d) => ({
       day: d.day,
       attempts: num(d.attempts),

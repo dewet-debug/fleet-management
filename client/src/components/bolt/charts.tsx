@@ -19,14 +19,16 @@ export interface TripDrill {
 }
 
 // Signal semantic hexes for charts that need inline colour.
+// CSS-variable-backed so charts follow light/dark mode (DOM + inline styles
+// resolve var(); see src/styles/tokens.css).
 const C = {
-  success: '#17935b',
-  primary: '#40427a', // Assemble49 indigo
-  primary300: '#9596cf', // periwinkle
-  info: '#2f6ea8',
-  warning: '#bd7f14',
-  neutral: '#6b7688',
-  danger: '#b0392f',
+  success: 'var(--success)',
+  primary: 'var(--primary)',
+  primary300: 'var(--peri)',
+  info: 'var(--info)',
+  warning: 'var(--warning)',
+  neutral: 'var(--neutral)',
+  danger: 'var(--danger)',
 };
 const DONUT_PALETTE = [C.primary, C.success, C.warning, C.info, C.neutral, C.danger];
 

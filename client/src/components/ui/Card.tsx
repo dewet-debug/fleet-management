@@ -22,13 +22,13 @@ export const Card: React.FC<CardProps> = ({
   subtitle,
   actions,
   className,
-  bodyClassName = 'p-5',
+  bodyClassName = 'p-pad',
   children,
 }) => {
   return (
-    <div className={clsx('overflow-hidden rounded-card border border-paper-line bg-paper-card', className)}>
+    <div className={clsx('overflow-hidden rounded-card border border-paper-line bg-paper-card shadow-card', className)}>
       {(title || actions) && (
-        <div className="flex items-center justify-between border-b border-paper-hair px-[18px] py-3.5">
+        <div className="flex items-center justify-between border-b border-paper-hair px-pad py-3.5">
           <div className="flex items-baseline gap-2.5">
             {title && <span className="text-lg font-bold text-ink">{title}</span>}
             {subtitle && <span className="font-mono text-xs text-ink-faint">{subtitle}</span>}
