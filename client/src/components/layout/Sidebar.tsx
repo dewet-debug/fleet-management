@@ -14,6 +14,7 @@ import {
   HiOutlineBuildingOffice2,
   HiOutlineClock,
   HiOutlineMapPin,
+  HiOutlineBanknotes,
 } from 'react-icons/hi2';
 import type { IconType } from 'react-icons';
 
@@ -76,6 +77,7 @@ export default function Sidebar() {
               <NavItem to="/assignments" icon={HiOutlineLink} label="Assignments" />
               <NavItem to="/services" icon={HiOutlineWrench} label="Services" />
               <NavItem to="/bolt-trips" icon={HiOutlineReceiptPercent} label="Bolt Trips" />
+              <NavItem to="/profitability" icon={HiOutlineBanknotes} label="Profitability" />
               <NavItem to="/live-map" icon={HiOutlineMapPin} label="Live Map" />
               {(isAdmin || isManager) && (
                 <NavItem to="/bulk-upload" icon={HiOutlineArrowUpTray} label="Bulk Upload" />
