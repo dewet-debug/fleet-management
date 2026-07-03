@@ -13,35 +13,40 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ---- Brand primary (steel blue) ----
+        // ---- Brand primary (Assemble49 indigo) ----
         primary: {
-          50:  '#eef2f7',
-          100: '#dce7f0',
-          200: '#b9cee1',
-          300: '#8fb0cd',
-          400: '#5e88b0',
-          500: '#356093', // base — buttons, active nav, links
-          600: '#2c5080',
-          700: '#244066',
-          800: '#1e3350',
-          900: '#182a41',
+          50:  '#eeeef8',
+          100: '#dcdcf0',
+          200: '#bbbce1',
+          300: '#9596cf', // periwinkle — matches the logo "A" outline
+          400: '#6365a4',
+          500: '#40427a', // base — buttons, active nav, links (logo "A" fill)
+          600: '#343565',
+          700: '#2a2b50',
+          800: '#232340',
+          900: '#1c1c31',
         },
-        // ---- Warm-paper neutrals (replaces cold gray-50/900) ----
+        // periwinkle accent from the logo outline
+        accent: {
+          DEFAULT: '#9596cf',
+          soft:    '#e9e9f6',
+        },
+        // ---- Cool slate-paper neutrals (sit with the indigo/slate brand) ----
         paper: {
-          bg:     '#f7f7f4', // app background
+          bg:     '#f4f5f8', // app background
           card:   '#ffffff', // surfaces
-          sunken: '#fbfbf9', // header / table zebra / footers
-          line:   '#e6e5df', // primary borders
-          hair:   '#efeee8', // internal hairlines / row dividers
-          faint:  '#f4f3ee', // lightest divider
+          sunken: '#f8f9fc', // header / table zebra / footers
+          line:   '#e2e3ec', // primary borders
+          hair:   '#ecedf3', // internal hairlines / row dividers
+          faint:  '#f1f2f7', // lightest divider
         },
         ink: {
-          DEFAULT: '#1c1c1a', // headings
-          strong:  '#20242b', // emphasised numerics
-          body:    '#3f3e38', // body text
-          muted:   '#6f6e64', // secondary text
-          faint:   '#9a998f', // meta / timestamps
-          ghost:   '#a6a59a', // labels / placeholders
+          DEFAULT: '#1e1e2a', // headings
+          strong:  '#232430', // emphasised numerics
+          body:    '#3e3f4b', // body text
+          muted:   '#696a78', // secondary text
+          faint:   '#9597a5', // meta / timestamps
+          ghost:   '#a2a4b1', // labels / placeholders
         },
         // ---- Semantic status palette (see theme/status.ts for enum mapping) ----
         success:  { DEFAULT: '#17935b', bg: '#e4f4ec' },

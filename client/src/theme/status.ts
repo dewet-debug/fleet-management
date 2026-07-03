@@ -1,5 +1,5 @@
 /**
- * MNC Fleet — Signal status system
+ * Assemble49 Fleet — Signal status system
  *
  * ONE semantic palette (success / warning / info / danger / neutral)
  * mapped across every status vocabulary in the app, so a green pill

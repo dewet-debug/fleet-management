@@ -1,13 +1,14 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   useDashboardMetrics,
   useDashboardActivity,
   useDashboardAlerts,
 } from '../hooks/useDashboard';
-import { useBoltTripsSummary, useBoltTrips, useBoltSyncLogs } from '../hooks/useBolt';
+import { useBoltTripsSummary, useBoltTrips, useBoltSyncLogs, useBoltAnalytics } from '../hooks/useBolt';
 import { Card, Stat, Badge, StatusBadge, Table, LoadingSpinner } from '../components/ui';
 import type { BoltTrip } from '../api/bolt';
 import { zar, int, lastSynced } from '../theme/format';
+import { RevenueTrendChart, PaymentMixDonut, CompletionFunnel, TopVehiclesBars, type TripDrill } from '../components/bolt/charts';
 import {
   HiOutlineTruck,
   HiOutlinePlus,
@@ -46,30 +47,46 @@ const RECENT_COLUMNS = [
 ];
 const RECENT_TEMPLATE = '120px 130px 1fr 120px 90px';
 
-/** One row of the Fleet-status breakdown. */
-function FleetRow({
-  label,
-  count,
+/** Fleet composition donut with a clickable legend. */
+function FleetDonut({
+  segments,
   total,
-  bar,
-  link,
 }: {
-  label: string;
-  count: number;
+  segments: { label: string; count: number; color: string; link: string }[];
   total: number;
-  bar: string;
-  link: string;
 }) {
+  let acc = 0;
+  const stops = segments
+    .filter((s) => s.count > 0)
+    .map((s) => {
+      const start = (acc / (total || 1)) * 360;
+      acc += s.count;
+      const end = (acc / (total || 1)) * 360;
+      return `${s.color} ${start}deg ${end}deg`;
+    })
+    .join(', ');
   return (
-    <Link to={link} className="block rounded-control px-1.5 py-2 hover:bg-paper-sunken">
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-sm text-ink-body">{label}</span>
-        <span className="font-mono text-sm font-semibold text-ink-strong">{int(count)}</span>
+    <div className="flex items-center gap-5">
+      <div className="relative shrink-0" style={{ width: 116, height: 116 }}>
+        <div className="h-full w-full rounded-pill" style={{ background: stops ? `conic-gradient(${stops})` : '#eceef2' }} />
+        <div className="absolute inset-[22px] grid place-items-center rounded-pill bg-paper-card text-center">
+          <div>
+            <p className="font-mono text-lg font-semibold text-ink-strong">{int(total)}</p>
+            <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">vehicles</p>
+          </div>
+        </div>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-pill bg-paper-sunken">
-        <div className={`h-full ${bar}`} style={{ width: `${pct(count, total)}%` }} />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        {segments.map((s) => (
+          <Link key={s.label} to={s.link} className="flex items-center gap-2 text-sm hover:underline">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+            <span className="flex-1 truncate text-ink-body">{s.label}</span>
+            <span className="font-mono text-xs text-ink-strong">{int(s.count)}</span>
+            <span className="w-9 text-right font-mono text-xs text-ink-faint">{Math.round(pct(s.count, total))}%</span>
+          </Link>
+        ))}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -85,6 +102,20 @@ export default function DashboardPage() {
     limit: 6,
   });
   const { data: syncLogs } = useBoltSyncLogs({ limit: 1 });
+  const { data: analytics } = useBoltAnalytics(window);
+  const navigate = useNavigate();
+
+  // Chart click -> open the Bolt-trips list filtered to the selection.
+  const drillToTrips = (d: TripDrill) => {
+    const p = new URLSearchParams();
+    if (d.dateFrom) p.set('dateFrom', d.dateFrom);
+    if (d.dateTo) p.set('dateTo', d.dateTo);
+    if (d.status) p.set('status', d.status);
+    if (d.paymentMethod) p.set('paymentMethod', d.paymentMethod);
+    if (d.search) p.set('search', d.search);
+    p.set('view', 'trips');
+    navigate(`/bolt-trips?${p.toString()}`);
+  };
 
   const m = metrics as any;
   const totalVehicles = m?.totalVehicles ?? 0;
@@ -186,32 +217,23 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* attempts vs finished stacked bar */}
+              {/* revenue trend chart */}
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                    Order attempts
+                    Daily gross fare
                   </span>
                   <span className="font-mono text-xs text-ink-muted">
-                    {int(finished)} / {int(attempts)} finished
+                    {int(finished)} / {int(attempts)} orders finished ({finishedPct}%)
                   </span>
                 </div>
-                <div className="flex h-3 w-full overflow-hidden rounded-pill bg-paper-sunken">
-                  <div className="h-full bg-success" style={{ width: `${finishedPct}%` }} />
-                  <div className="h-full bg-neutral" style={{ width: `${100 - finishedPct}%` }} />
-                </div>
-                <div className="mt-2 flex items-center gap-4">
-                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-ink-muted">
-                    <span className="h-2 w-2 rounded-pill bg-success" /> Finished
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-ink-muted">
-                    <span className="h-2 w-2 rounded-pill bg-neutral" /> Not completed
-                  </span>
+                <RevenueTrendChart trend={analytics?.dailyTrend ?? []} height={132} showDayLabels={false} onSelect={drillToTrips} />
+                <div className="mt-3 border-t border-paper-hair pt-2.5 text-right">
                   <Link
                     to="/bolt-trips"
-                    className="ml-auto inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
+                    className="inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
                   >
-                    View trips <HiOutlineArrowRight />
+                    View trips &amp; analytics <HiOutlineArrowRight />
                   </Link>
                 </div>
               </div>
@@ -224,17 +246,33 @@ export default function DashboardPage() {
           {metricsLoading ? (
             <LoadingSpinner size="md" />
           ) : (
-            <div className="space-y-1">
-              <FleetRow label="Active" count={activeV} total={totalVehicles} bar="bg-success" link="/vehicles?status=ACTIVE" />
-              <FleetRow label="In service" count={inServiceV} total={totalVehicles} bar="bg-warning" link="/vehicles?status=IN_SERVICE" />
-              <FleetRow label="Out of service" count={outV} total={totalVehicles} bar="bg-danger" link="/vehicles?status=OUT_OF_SERVICE" />
-              <FleetRow label="Retired" count={retiredV} total={totalVehicles} bar="bg-neutral" link="/vehicles?status=RETIRED" />
-            </div>
+            <FleetDonut
+              total={totalVehicles}
+              segments={[
+                { label: 'Active', count: activeV, color: '#17935b', link: '/vehicles?status=ACTIVE' },
+                { label: 'In service', count: inServiceV, color: '#bd7f14', link: '/vehicles?status=IN_SERVICE' },
+                { label: 'Out of service', count: outV, color: '#b0392f', link: '/vehicles?status=OUT_OF_SERVICE' },
+                { label: 'Retired', count: retiredV, color: '#6b7688', link: '/vehicles?status=RETIRED' },
+              ]}
+            />
           )}
         </Card>
       </div>
 
-      {/* 4 — Recent Bolt trips + Needs attention */}
+      {/* 4 — Payment mix + funnel + top vehicles */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card title="Payment mix" subtitle="last 30 days">
+          <PaymentMixDonut paymentMix={analytics?.paymentMix ?? []} onSelect={drillToTrips} />
+        </Card>
+        <Card title="Completion funnel" subtitle="last 30 days">
+          <CompletionFunnel funnel={analytics?.funnel ?? { attempts: 0, accepted: 0, finished: 0, netPaid: 0 }} onSelect={drillToTrips} />
+        </Card>
+        <Card title="Top earning vehicles" subtitle="last 30 days">
+          <TopVehiclesBars topVehicles={analytics?.topVehicles ?? []} onSelect={drillToTrips} />
+        </Card>
+      </div>
+
+      {/* 5 — Recent Bolt trips + Needs attention */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Recent Bolt trips */}
         <Card

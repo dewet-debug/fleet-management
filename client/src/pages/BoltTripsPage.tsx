@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, Stat, StatusBadge, Input, LoadingSpinner, Pagination, Table } from '../components/ui';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 import { useBoltTrips, useBoltTripsSummary } from '../hooks/useBolt';
 import type { BoltTrip, BoltTripFilters } from '../api/bolt';
 import { zar, km, int } from '../theme/format';
 import BoltAnalytics from '../components/bolt/BoltAnalytics';
+import type { TripDrill } from '../components/bolt/charts';
+
+const PAYMENT_OPTIONS = ['cash', 'in_app', 'card', 'business'];
 
 const STATUS_OPTIONS = [
   'finished',
@@ -36,17 +40,23 @@ const COLUMNS = [
 const TEMPLATE = '132px 150px 150px minmax(180px,1fr) 128px 84px 84px 96px 96px';
 
 export default function BoltTripsPage() {
-  const [view, setView] = useState<'trips' | 'analytics'>('trips');
+  // Initialise filters from the URL so charts elsewhere can deep-link a drill-down.
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState<'trips' | 'analytics'>(
+    searchParams.get('view') === 'analytics' ? 'analytics' : 'trips',
+  );
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [matched, setMatched] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
+  const [status, setStatus] = useState(searchParams.get('status') ?? '');
+  const [paymentMethod, setPaymentMethod] = useState(searchParams.get('paymentMethod') ?? '');
+  const [matched, setMatched] = useState(searchParams.get('matched') ?? '');
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') ?? '');
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') ?? '');
 
   const commonFilters = {
     search: search || undefined,
     status: status || undefined,
+    paymentMethod: paymentMethod || undefined,
     matched: (matched || undefined) as BoltTripFilters['matched'],
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
@@ -55,6 +65,17 @@ export default function BoltTripsPage() {
   const { data: summary } = useBoltTripsSummary(commonFilters);
   const { data, isLoading, isFetching } = useBoltTrips({ ...commonFilters, page, limit: 25 });
   const first = () => setPage(1);
+
+  // Apply a chart drill-down: set the matching filters and jump to the trips list.
+  const applyDrill = (d: TripDrill) => {
+    if (d.dateFrom !== undefined) setDateFrom(d.dateFrom);
+    if (d.dateTo !== undefined) setDateTo(d.dateTo);
+    if (d.status !== undefined) setStatus(d.status);
+    if (d.paymentMethod !== undefined) setPaymentMethod(d.paymentMethod);
+    if (d.search !== undefined) setSearch(d.search);
+    setPage(1);
+    setView('trips');
+  };
 
   return (
     <div className="space-y-4">
@@ -117,6 +138,10 @@ export default function BoltTripsPage() {
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
+        <select className={controlClass} value={paymentMethod} onChange={(e) => { setPaymentMethod(e.target.value); first(); }}>
+          <option value="">All payments</option>
+          {PAYMENT_OPTIONS.map((p) => <option key={p} value={p}>{statusLabel(p)}</option>)}
+        </select>
         <select className={controlClass} value={matched} onChange={(e) => { setMatched(e.target.value); first(); }}>
           <option value="">All vehicles</option>
           <option value="matched">Matched to registry</option>
@@ -132,7 +157,7 @@ export default function BoltTripsPage() {
 
       {/* trips table / analytics */}
       {view === 'analytics' ? (
-        <BoltAnalytics dateFrom={dateFrom || undefined} dateTo={dateTo || undefined} />
+        <BoltAnalytics dateFrom={dateFrom || undefined} dateTo={dateTo || undefined} onSelect={applyDrill} />
       ) : isLoading ? (
         <LoadingSpinner size="lg" />
       ) : (

@@ -32,7 +32,7 @@ const OSM_STYLE = {
 const radiusExpr = (hi: number) =>
   ['interpolate', ['linear'], ['get', 'count'], 1, 4, hi, 28] as unknown as maplibregl.ExpressionSpecification;
 const colorExpr = (hi: number) =>
-  ['interpolate', ['linear'], ['get', 'count'], 1, '#8fb0cd', hi, '#244066'] as unknown as maplibregl.ExpressionSpecification;
+  ['interpolate', ['linear'], ['get', 'count'], 1, '#9596cf', hi, '#2a2b50'] as unknown as maplibregl.ExpressionSpecification;
 
 function renderZones(map: maplibregl.Map, zones: PickupZone[]) {
   const geojson = {
