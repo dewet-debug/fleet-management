@@ -1,28 +1,51 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDrivers, useCreateDriver } from '../hooks/useDrivers';
-import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
-import { HiPlus, HiEye } from 'react-icons/hi2';
+import { Button, Input, Badge, StatusBadge, Modal, Pagination, LoadingSpinner, Table } from '../components/ui';
+import { HiPlus, HiMagnifyingGlass } from 'react-icons/hi2';
+import { int } from '../theme/format';
 import toast from 'react-hot-toast';
-
-const statusColors: Record<string, 'green' | 'gray' | 'red'> = {
-  ACTIVE: 'green', INACTIVE: 'gray', SUSPENDED: 'red',
-};
 
 const defaultForm = {
   employeeId: '', firstName: '', lastName: '', email: '', phone: '',
   licenseNumber: '', licenseExpiry: '', notes: '',
 };
 
+const controlClass =
+  'rounded-control border border-paper-line bg-paper-card px-3 py-2 text-sm text-ink-body focus:border-primary-400 focus:outline-none';
+
+const COLUMNS = [
+  { key: 'name', header: 'Driver' },
+  { key: 'employee', header: 'Employee ID' },
+  { key: 'phone', header: 'Phone' },
+  { key: 'licence', header: 'Licence' },
+  { key: 'status', header: 'Status' },
+];
+const TEMPLATE = 'minmax(200px,1fr) 140px 150px minmax(180px,240px) 130px';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Licence expiry warning: danger if past, warning if within ~30 days. */
+function licenceExpiry(expiry: string) {
+  const date = new Date(expiry);
+  const label = isNaN(date.getTime()) ? '—' : date.toLocaleDateString();
+  if (isNaN(date.getTime())) return { label, badge: null as null | JSX.Element };
+  const days = Math.floor((date.getTime() - Date.now()) / DAY_MS);
+  if (days < 0) return { label, badge: <Badge tone="danger">Expired</Badge> };
+  if (days <= 30) return { label, badge: <Badge tone="warning">{days}d left</Badge> };
+  return { label, badge: null };
+}
+
 export default function DriverListPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
-  const { data, isLoading } = useDrivers({ page, limit: 1000, search, status: statusFilter || undefined });
+  const { data, isLoading, isFetching } = useDrivers({ page, limit: 1000, search, status: statusFilter || undefined });
   const createDriver = useCreateDriver();
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -36,64 +59,86 @@ export default function DriverListPage() {
   };
 
   const setField = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+  const rows = (data?.data ?? []) as any[];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Drivers</h1>
-        <Button onClick={() => setShowModal(true)}><HiPlus className="mr-1" /> Add Driver</Button>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Drivers</h1>
+          <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
+            {int(rows.length)} driver{rows.length === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isFetching && <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Updating…</span>}
+          <Button onClick={() => setShowModal(true)}><HiPlus className="mr-1" /> Add Driver</Button>
+        </div>
       </div>
 
-      <div className="flex gap-3">
-        <Input placeholder="Search drivers..." value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="max-w-xs" />
-        <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          options={[
-            { value: '', label: 'All Statuses' },
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'INACTIVE', label: 'Inactive' },
-            { value: 'SUSPENDED', label: 'Suspended' },
-          ]} />
+      {/* filters */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative">
+          <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-ghost" />
+          <Input
+            placeholder="Name, email, licence…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-72 pl-9"
+          />
+        </div>
+        <select className={controlClass} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+          <option value="">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="SUSPENDED">Suspended</option>
+        </select>
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
         <>
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Employee ID</th>
-                  <th className="px-4 py-3 text-left">Name</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">License #</th>
-                  <th className="px-4 py-3 text-left">License Expiry</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.data?.map((d: any) => (
-                  <tr key={d.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{d.employeeId}</td>
-                    <td className="px-4 py-3">{d.firstName} {d.lastName}</td>
-                    <td className="px-4 py-3">{d.email}</td>
-                    <td className="px-4 py-3">{d.licenseNumber}</td>
-                    <td className="px-4 py-3">{new Date(d.licenseExpiry).toLocaleDateString()}</td>
-                    <td className="px-4 py-3"><Badge color={statusColors[d.status]}>{d.status}</Badge></td>
-                    <td className="px-4 py-3">
-                      <Link to={`/drivers/${d.id}`} className="text-primary-600 hover:text-primary-800 inline-flex items-center gap-1">
-                        <HiEye /> View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {data?.data?.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No drivers found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {data?.pagination && <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />}
+          <Table<any>
+            columns={COLUMNS}
+            template={TEMPLATE}
+            rows={rows}
+            onRowClick={(d) => navigate(`/drivers/${d.id}`)}
+            emptyMessage="No drivers found."
+            renderCell={(d, key) => {
+              switch (key) {
+                case 'name':
+                  return (
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-ink-strong">{d.firstName} {d.lastName}</p>
+                      <p className="truncate text-xs text-ink-faint">{d.email || '—'}</p>
+                    </div>
+                  );
+                case 'employee':
+                  return <span className="font-mono text-xs text-ink-body">{d.employeeId || '—'}</span>;
+                case 'phone':
+                  return <span className="font-mono text-xs text-ink-body">{d.phone || '—'}</span>;
+                case 'licence': {
+                  const { label, badge } = licenceExpiry(d.licenseExpiry);
+                  return (
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-ink-strong">{d.licenseNumber || '—'}</p>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span className="font-mono text-xs text-ink-faint">{label}</span>
+                        {badge}
+                      </div>
+                    </div>
+                  );
+                }
+                case 'status':
+                  return <StatusBadge kind="driver" value={d.status} />;
+                default:
+                  return null;
+              }
+            }}
+          />
+          {data?.pagination && data.pagination.totalPages > 1 && (
+            <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+          )}
         </>
       )}
 

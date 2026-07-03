@@ -1,10 +1,19 @@
 import { useState } from 'react';
 import { useServiceTypes, useCreateServiceType, useUpdateServiceType } from '../hooks/useServices';
-import { Button, Input, Badge, Modal, LoadingSpinner } from '../components/ui';
+import { Button, Input, Badge, Modal, LoadingSpinner, Table } from '../components/ui';
 import { HiPlus, HiPencil } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 const defaultForm = { name: '', description: '', category: '', estimatedDuration: '' };
+
+const COLUMNS = [
+  { key: 'name', header: 'Name' },
+  { key: 'category', header: 'Category' },
+  { key: 'duration', header: 'Duration' },
+  { key: 'status', header: 'Status' },
+  { key: 'actions', header: '', className: 'text-right' },
+];
+const TEMPLATE = 'minmax(180px,1fr) 160px 140px 120px 80px';
 
 export default function ServiceTypesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -39,40 +48,50 @@ export default function ServiceTypesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Service Types</h1>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Service Types</h1>
+          <p className="font-mono text-xs text-ink-faint">Maintenance &amp; repair categories</p>
+        </div>
         <Button onClick={() => { setEditItem(null); setForm(defaultForm); setShowModal(true); }}>
-          <HiPlus className="mr-1" /> Add Type
+          <HiPlus /> Add Type
         </Button>
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data?.data?.map((t: any) => (
-                <tr key={t.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{t.name}</td>
-                  <td className="px-4 py-3">{t.category || '-'}</td>
-                  <td className="px-4 py-3">{t.estimatedDuration || '-'}</td>
-                  <td className="px-4 py-3"><Badge color={t.isActive ? 'green' : 'red'}>{t.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => openEdit(t)} className="text-primary-600 hover:text-primary-800"><HiPencil /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={COLUMNS}
+          template={TEMPLATE}
+          rows={data?.data ?? []}
+          emptyMessage="No service types found."
+          renderCell={(t: any, key) => {
+            switch (key) {
+              case 'name':
+                return <span className="text-sm font-semibold text-ink">{t.name}</span>;
+              case 'category':
+                return <span className="text-sm text-ink-body">{t.category || '—'}</span>;
+              case 'duration':
+                return <span className="font-mono text-xs text-ink-muted">{t.estimatedDuration || '—'}</span>;
+              case 'status':
+                return <Badge tone={t.isActive ? 'success' : 'neutral'}>{t.isActive ? 'Active' : 'Inactive'}</Badge>;
+              case 'actions':
+                return (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => openEdit(t)}
+                      className="rounded-control p-1.5 text-ink-muted hover:bg-paper-sunken hover:text-primary-600"
+                      aria-label="Edit service type"
+                    >
+                      <HiPencil />
+                    </button>
+                  </div>
+                );
+              default:
+                return null;
+            }
+          }}
+        />
       )}
 
       <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditItem(null); }}

@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useServices, useCreateService, useServiceTypes } from '../hooks/useServices';
 import { useVehicles } from '../hooks/useVehicles';
-import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
-import { HiPlus, HiEye, HiXMark } from 'react-icons/hi2';
-import { formatCurrency, CURRENCY_OPTIONS } from '../utils/currency';
+import { Button, Input, Select, Modal, Pagination, LoadingSpinner, Table, StatusBadge } from '../components/ui';
+import { HiPlus, HiXMark } from 'react-icons/hi2';
+import { zar } from '../theme/format';
 import toast from 'react-hot-toast';
 
-const statusColors: Record<string, 'gray' | 'blue' | 'purple' | 'yellow' | 'green' | 'red'> = {
-  DRAFT: 'gray', SCHEDULED: 'blue', AUTHORIZED: 'purple', IN_PROGRESS: 'yellow',
-  COMPLETED: 'green', APPROVED: 'green', RETURNED: 'gray',
-};
+const COLUMNS = [
+  { key: 'ref', header: 'Ref' },
+  { key: 'vehicle', header: 'Vehicle' },
+  { key: 'provider', header: 'Provider' },
+  { key: 'type', header: 'Type' },
+  { key: 'status', header: 'Status' },
+  { key: 'cost', header: 'Cost', className: 'text-right' },
+];
+const TEMPLATE = '110px minmax(200px,1fr) 160px 160px 128px 120px';
 
 export default function ServiceListPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
@@ -54,12 +60,17 @@ export default function ServiceListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Service Records</h1>
-        <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> New Service</Button>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Service Records</h1>
+          <p className="font-mono text-xs text-ink-faint">Maintenance workflow &amp; cost tracking</p>
+        </div>
+        <Button onClick={() => setShowCreate(true)}><HiPlus /> New Service</Button>
       </div>
 
-      <div className="flex gap-3 flex-wrap items-end">
+      {/* filters */}
+      <div className="flex flex-wrap items-end gap-3">
         <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
           options={[
             { value: '', label: 'All Statuses' },
@@ -74,7 +85,7 @@ export default function ServiceListPage() {
         {(statusFilter || hasDateFilter) && (
           <button
             onClick={() => { setStatusFilter(''); setDateFrom(''); setDateTo(''); setPage(1); setSearchParams({}); }}
-            className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="inline-flex items-center gap-1 rounded-control border border-paper-line px-3 py-2 text-sm text-ink-muted hover:bg-paper-sunken hover:text-ink"
           >
             <HiXMark /> Clear Filters
           </button>
@@ -83,43 +94,36 @@ export default function ServiceListPage() {
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
         <>
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Vehicle</th>
-                  <th className="px-4 py-3 text-left">Service Type</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Provider</th>
-                  <th className="px-4 py-3 text-left">Scheduled</th>
-                  <th className="px-4 py-3 text-left">Cost</th>
-                  <th className="px-4 py-3 text-left">Driver</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.data?.map((s: any) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">{s.vehicle?.licensePlate} - {s.vehicle?.make} {s.vehicle?.model}</td>
-                    <td className="px-4 py-3">{s.serviceType?.name}</td>
-                    <td className="px-4 py-3"><Badge color={statusColors[s.status]}>{s.status.replace('_', ' ')}</Badge></td>
-                    <td className="px-4 py-3">{s.serviceProvider?.name || '-'}</td>
-                    <td className="px-4 py-3">{s.scheduledDate ? new Date(s.scheduledDate).toLocaleDateString() : '-'}</td>
-                    <td className="px-4 py-3">{s.totalCostInclVat ? formatCurrency(s.totalCostInclVat, s.currency) : '-'}</td>
-                    <td className="px-4 py-3">{s.driver ? `${s.driver.firstName} ${s.driver.lastName}` : '-'}</td>
-                    <td className="px-4 py-3">
-                      <Link to={`/services/${s.id}`} className="text-primary-600 hover:text-primary-800 inline-flex items-center gap-1">
-                        <HiEye /> View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {data?.data?.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No service records</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table<any>
+            columns={COLUMNS}
+            template={TEMPLATE}
+            rows={data?.data ?? []}
+            emptyMessage="No service records"
+            onRowClick={(s) => navigate(`/services/${s.id}`)}
+            renderCell={(s, key) => {
+              switch (key) {
+                case 'ref':
+                  return <span className="font-mono text-xs text-ink-muted">{s.invoiceNumber || s.id.slice(0, 8)}</span>;
+                case 'vehicle':
+                  return (
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-ink-strong">{s.vehicle?.licensePlate || '—'}</p>
+                      <p className="truncate text-xs text-ink-faint">{s.vehicle?.make} {s.vehicle?.model}</p>
+                    </div>
+                  );
+                case 'provider':
+                  return <span className="truncate text-sm text-ink-body">{s.serviceProvider?.name || '—'}</span>;
+                case 'type':
+                  return <span className="truncate text-sm text-ink-body">{s.serviceType?.name || '—'}</span>;
+                case 'status':
+                  return <StatusBadge kind="service" value={s.status} />;
+                case 'cost':
+                  return <span className="font-mono text-xs text-ink-strong">{s.totalCostInclVat != null ? zar(s.totalCostInclVat) : '—'}</span>;
+                default:
+                  return null;
+              }
+            }}
+          />
           {data?.pagination && <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />}
         </>
       )}

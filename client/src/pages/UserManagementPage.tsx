@@ -1,14 +1,31 @@
 import { useState } from 'react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser } from '../hooks/useUsers';
-import { Button, Input, Select, Badge, Modal, ConfirmDialog, Pagination, LoadingSpinner } from '../components/ui';
+import { Button, Input, Select, Badge, Modal, ConfirmDialog, Pagination, LoadingSpinner, Table } from '../components/ui';
+import type { User } from '../api/users';
 import { HiPlus, HiPencil, HiTrash } from 'react-icons/hi2';
+import type { Semantic } from '../theme/status';
 import toast from 'react-hot-toast';
 
-const roleColors: Record<string, 'blue' | 'green' | 'purple'> = {
-  ADMIN: 'blue', FLEET_MANAGER: 'green', SERVICE_COMPANY: 'purple',
+const roleTone: Record<string, Semantic> = {
+  ADMIN: 'info', FLEET_MANAGER: 'success', SERVICE_COMPANY: 'neutral',
 };
 
+const roleOptions = [
+  { value: 'ADMIN', label: 'Admin' },
+  { value: 'FLEET_MANAGER', label: 'Fleet Manager' },
+  { value: 'SERVICE_COMPANY', label: 'Service Company' },
+];
+
 const defaultForm = { email: '', password: '', firstName: '', lastName: '', role: 'FLEET_MANAGER' };
+
+const COLUMNS = [
+  { key: 'name', header: 'Name' },
+  { key: 'email', header: 'Email' },
+  { key: 'role', header: 'Role' },
+  { key: 'status', header: 'Status' },
+  { key: 'actions', header: '', className: 'text-right' },
+];
+const TEMPLATE = 'minmax(160px,1fr) minmax(200px,1.4fr) 150px 120px 80px';
 
 export default function UserManagementPage() {
   const [page, setPage] = useState(1);
@@ -17,7 +34,7 @@ export default function UserManagementPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
 
-  const { data, isLoading } = useUsers({ page, limit: 20 });
+  const { data, isLoading, isFetching } = useUsers({ page, limit: 20 });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
@@ -53,41 +70,67 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <Button onClick={() => setShowCreate(true)}><HiPlus className="mr-1" /> Add User</Button>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">User Management</h1>
+          <p className="font-mono text-xs text-ink-faint">Accounts, roles &amp; access control</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isFetching && <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Updating…</span>}
+          <Button onClick={() => { setForm(defaultForm); setShowCreate(true); }}>
+            <HiPlus /> Add User
+          </Button>
+        </div>
       </div>
 
       {isLoading ? <LoadingSpinner size="lg" /> : (
         <>
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">Name</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Role</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.data?.map((u: any) => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{u.firstName} {u.lastName}</td>
-                    <td className="px-4 py-3">{u.email}</td>
-                    <td className="px-4 py-3"><Badge color={roleColors[u.role]}>{u.role}</Badge></td>
-                    <td className="px-4 py-3"><Badge color={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Active' : 'Inactive'}</Badge></td>
-                    <td className="px-4 py-3 flex gap-2">
-                      <button onClick={() => setEditUser(u)} className="text-primary-600 hover:text-primary-800"><HiPencil /></button>
-                      <button onClick={() => setDeleteId(u.id)} className="text-red-500 hover:text-red-700"><HiTrash /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {data?.pagination && <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />}
+          <Table<User>
+            columns={COLUMNS}
+            template={TEMPLATE}
+            rows={data?.data ?? []}
+            emptyMessage="No users found."
+            renderCell={(u, key) => {
+              switch (key) {
+                case 'name':
+                  return <span className="text-sm font-semibold text-ink">{u.firstName} {u.lastName}</span>;
+                case 'email':
+                  return <span className="font-mono text-xs text-ink-muted">{u.email}</span>;
+                case 'role':
+                  return <Badge tone={roleTone[u.role] ?? 'neutral'}>{u.role}</Badge>;
+                case 'status':
+                  return <Badge tone={u.isActive ? 'success' : 'neutral'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>;
+                case 'actions':
+                  return (
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => setEditUser(u)}
+                        className="rounded-control p-1.5 text-ink-muted hover:bg-paper-sunken hover:text-primary-600"
+                        aria-label="Edit user"
+                      >
+                        <HiPencil />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(u.id)}
+                        className="rounded-control p-1.5 text-ink-muted hover:bg-paper-sunken hover:text-danger"
+                        aria-label="Deactivate user"
+                      >
+                        <HiTrash />
+                      </button>
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            }}
+          />
+          {data?.pagination && data.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-xs text-ink-faint">{data.pagination.total} users</p>
+              <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+            </div>
+          )}
         </>
       )}
 
@@ -99,8 +142,7 @@ export default function UserManagementPage() {
           </div>
           <Input label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
           <Input label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-          <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            options={[{ value: 'ADMIN', label: 'Admin' }, { value: 'FLEET_MANAGER', label: 'Fleet Manager' }, { value: 'SERVICE_COMPANY', label: 'Service Company' }]} />
+          <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} options={roleOptions} />
           <div className="flex justify-end gap-2">
             <Button variant="secondary" type="button" onClick={() => setShowCreate(false)}>Cancel</Button>
             <Button type="submit" isLoading={createUser.isPending}>Create</Button>
@@ -115,8 +157,7 @@ export default function UserManagementPage() {
             <Input label="Last Name" value={editUser?.lastName || ''} onChange={(e) => setEditUser({ ...editUser, lastName: e.target.value })} />
           </div>
           <Input label="Email" type="email" value={editUser?.email || ''} onChange={(e) => setEditUser({ ...editUser, email: e.target.value })} />
-          <Select label="Role" value={editUser?.role || ''} onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-            options={[{ value: 'ADMIN', label: 'Admin' }, { value: 'FLEET_MANAGER', label: 'Fleet Manager' }, { value: 'SERVICE_COMPANY', label: 'Service Company' }]} />
+          <Select label="Role" value={editUser?.role || ''} onChange={(e) => setEditUser({ ...editUser, role: e.target.value })} options={roleOptions} />
           <div className="flex justify-end gap-2">
             <Button variant="secondary" type="button" onClick={() => setEditUser(null)}>Cancel</Button>
             <Button type="submit" isLoading={updateUser.isPending}>Save</Button>

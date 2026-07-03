@@ -1,17 +1,30 @@
 import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useVehicles, useCreateVehicle } from '../hooks/useVehicles';
-import { Button, Input, Select, Badge, Modal, Pagination, LoadingSpinner } from '../components/ui';
-import { HiPlus, HiEye } from 'react-icons/hi2';
+import type { Vehicle } from '../api/vehicles';
+import { Button, Input, Select, StatusBadge, Table, Modal, Pagination, LoadingSpinner } from '../components/ui';
+import { HiPlus, HiMagnifyingGlass } from 'react-icons/hi2';
 import { CURRENCY_OPTIONS } from '../utils/currency';
+import { int } from '../theme/format';
 import toast from 'react-hot-toast';
 
-const statusColors: Record<string, 'green' | 'yellow' | 'red' | 'gray'> = {
-  ACTIVE: 'green',
-  IN_SERVICE: 'yellow',
-  OUT_OF_SERVICE: 'red',
-  RETIRED: 'gray',
-};
+const STATUS_FILTERS = [
+  { value: '', label: 'All' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'IN_SERVICE', label: 'In service' },
+  { value: 'OUT_OF_SERVICE', label: 'Out of service' },
+  { value: 'RETIRED', label: 'Retired' },
+];
+
+const COLUMNS = [
+  { key: 'plate', header: 'Plate' },
+  { key: 'model', header: 'Make / Model' },
+  { key: 'fleet', header: 'Fleet no' },
+  { key: 'status', header: 'Status' },
+  { key: 'odometer', header: 'Odometer', className: 'text-right' },
+  { key: 'driver', header: 'Driver' },
+];
+const TEMPLATE = '128px minmax(180px,1fr) 110px 132px 130px 170px';
 
 const defaultForm = {
   vin: '', licensePlate: '', make: '', model: '', year: new Date().getFullYear(),
@@ -23,13 +36,14 @@ const defaultForm = {
 
 export default function VehicleListPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
 
-  const { data, isLoading } = useVehicles({ page, limit: 1000, search, status: statusFilter || undefined });
+  const { data, isLoading, isFetching } = useVehicles({ page, limit: 1000, search, status: statusFilter || undefined });
   const createVehicle = useCreateVehicle();
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -43,7 +57,7 @@ export default function VehicleListPage() {
         monthlyLeaseCost: form.monthlyLeaseCost ? Number(form.monthlyLeaseCost) : undefined,
         currentBookValue: form.currentBookValue ? Number(form.currentBookValue) : undefined,
         premiumAmount: form.premiumAmount ? Number(form.premiumAmount) : undefined,
-      } as any);
+      } as Partial<Vehicle>);
       toast.success('Vehicle created');
       setShowModal(false);
       setForm(defaultForm);
@@ -56,74 +70,105 @@ export default function VehicleListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Vehicles</h1>
-        <Button onClick={() => setShowModal(true)}>
-          <HiPlus className="mr-1" /> Add Vehicle
-        </Button>
+      {/* page header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-ink">Vehicles</h1>
+          <p className="font-mono text-xs text-ink-faint">Fleet registry · vehicles &amp; assignments</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isFetching && <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Updating…</span>}
+          <Button onClick={() => setShowModal(true)}>
+            <HiPlus className="mr-1" /> Add vehicle
+          </Button>
+        </div>
       </div>
 
-      <div className="flex gap-3">
-        <Input
-          placeholder="Search vehicles..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="max-w-xs"
-        />
-        <Select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          options={[
-            { value: '', label: 'All Statuses' },
-            { value: 'ACTIVE', label: 'Active' },
-            { value: 'IN_SERVICE', label: 'In Service' },
-            { value: 'OUT_OF_SERVICE', label: 'Out of Service' },
-            { value: 'RETIRED', label: 'Retired' },
-          ]}
-        />
+      {/* filters */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative">
+          <HiMagnifyingGlass className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-ghost" />
+          <Input
+            placeholder="Plate, make, model…"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-72 pl-9"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {STATUS_FILTERS.map((s) => {
+            const active = statusFilter === s.value;
+            return (
+              <button
+                key={s.value || 'all'}
+                onClick={() => { setStatusFilter(s.value); setPage(1); }}
+                className={`rounded-pill border px-3 py-1 text-xs font-semibold transition-colors ${
+                  active
+                    ? 'border-primary-200 bg-primary-50 text-primary-700'
+                    : 'border-paper-line text-ink-muted hover:text-ink'
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {isLoading ? (
         <LoadingSpinner size="lg" />
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
-                <tr>
-                  <th className="px-4 py-3 text-left">License Plate</th>
-                  <th className="px-4 py-3 text-left">Make / Model</th>
-                  <th className="px-4 py-3 text-left">Year</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Kilometers</th>
-                  <th className="px-4 py-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.data?.map((v: any) => (
-                  <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{v.licensePlate}</td>
-                    <td className="px-4 py-3">{v.make} {v.model}</td>
-                    <td className="px-4 py-3">{v.year}</td>
-                    <td className="px-4 py-3">
-                      <Badge color={statusColors[v.status]}>{v.status.replace('_', ' ')}</Badge>
-                    </td>
-                    <td className="px-4 py-3">{v.currentKilometers?.toLocaleString()} km</td>
-                    <td className="px-4 py-3">
-                      <Link to={`/vehicles/${v.id}`} className="text-primary-600 hover:text-primary-800 inline-flex items-center gap-1">
-                        <HiEye /> View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {data?.data?.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No vehicles found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <Table<Vehicle>
+            columns={COLUMNS}
+            template={TEMPLATE}
+            rows={data?.data ?? []}
+            emptyMessage="No vehicles found."
+            onRowClick={(v) => navigate(`/vehicles/${v.id}`)}
+            renderCell={(v, key) => {
+              const driver = (v as any).assignments?.[0]?.driver;
+              switch (key) {
+                case 'plate':
+                  return <span className="font-mono text-sm text-ink-strong">{v.licensePlate}</span>;
+                case 'model':
+                  return (
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-ink-body">{v.make} {v.model}</p>
+                      <p className="font-mono text-xs text-ink-faint">{v.year}</p>
+                    </div>
+                  );
+                case 'fleet':
+                  return <span className="font-mono text-xs text-ink-muted">{v.fleetNumber || '—'}</span>;
+                case 'status':
+                  return <StatusBadge kind="vehicle" value={v.status} />;
+                case 'odometer':
+                  return (
+                    <span className="font-mono text-xs text-ink-body">
+                      {v.currentKilometers != null ? `${int(v.currentKilometers)} km` : '—'}
+                    </span>
+                  );
+                case 'driver':
+                  return (
+                    <span className="truncate text-sm text-ink-body">
+                      {driver ? `${driver.firstName} ${driver.lastName}` : <span className="text-ink-faint">—</span>}
+                    </span>
+                  );
+                default:
+                  return null;
+              }
+            }}
+          />
+
           {data?.pagination && (
-            <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+            <div className="flex items-center justify-between">
+              <p className="font-mono text-xs text-ink-faint">
+                Showing {data.data.length ? (data.pagination.page - 1) * data.pagination.limit + 1 : 0}
+                –{(data.pagination.page - 1) * data.pagination.limit + data.data.length} of {int(data.pagination.total)}
+              </p>
+              {data.pagination.totalPages > 1 && (
+                <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+              )}
+            </div>
           )}
         </>
       )}
@@ -145,8 +190,8 @@ export default function VehicleListPage() {
               options={CURRENCY_OPTIONS} />
           </div>
           <Input label="Notes" value={form.notes} onChange={(e) => setField('notes', e.target.value)} />
-          <details className="border border-gray-200 rounded-lg p-3">
-            <summary className="text-sm font-medium text-gray-700 cursor-pointer">Financial Details (optional)</summary>
+          <details className="border border-paper-line rounded-control p-3">
+            <summary className="text-sm font-medium text-ink-body cursor-pointer">Financial Details (optional)</summary>
             <div className="grid grid-cols-2 gap-4 mt-3">
               <Input label="Fleet Number" value={form.fleetNumber || ''} onChange={(e) => setField('fleetNumber', e.target.value)} />
               <Input label="Lease Company" value={form.leaseCompany || ''} onChange={(e) => setField('leaseCompany', e.target.value)} />

@@ -21,7 +21,7 @@ export interface UsersParams {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  meta: {
+  pagination: {
     total: number;
     page: number;
     limit: number;
