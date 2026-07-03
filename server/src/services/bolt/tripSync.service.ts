@@ -21,6 +21,12 @@ export interface BoltTripSyncParams {
   triggeredBy?: string;
   /** Page size for getFleetOrders paging (1-1000). */
   pageLimit?: number;
+  /**
+   * Whether to record this window in bolt_sync_log. Default true. The console
+   * runner day-chunks a range and keeps its own single outer log, so it passes
+   * false to avoid one log row per day cluttering the sync history.
+   */
+  logToDb?: boolean;
 }
 
 export interface BoltTripSyncResult {
@@ -45,15 +51,18 @@ export async function syncBoltTripsWindow(
   params: BoltTripSyncParams,
 ): Promise<BoltTripSyncResult> {
   const startedAt = Date.now();
-  const syncLog = await prisma.boltSyncLog.create({
-    data: {
-      syncType: 'trips',
-      status: 'RUNNING',
-      triggeredBy: params.triggeredBy ?? 'manual',
-      windowStart: new Date(params.startTs * 1000),
-      windowEnd: new Date(params.endTs * 1000),
-    },
-  });
+  const syncLog =
+    params.logToDb === false
+      ? null
+      : await prisma.boltSyncLog.create({
+          data: {
+            syncType: 'trips',
+            status: 'RUNNING',
+            triggeredBy: params.triggeredBy ?? 'manual',
+            windowStart: new Date(params.startTs * 1000),
+            windowEnd: new Date(params.endTs * 1000),
+          },
+        });
 
   try {
     const response = await api.getAllFleetOrders(
@@ -156,34 +165,38 @@ export async function syncBoltTripsWindow(
       unmatchedPlates: orders.length - matched,
       errored,
       durationMs: Date.now() - startedAt,
-      syncLogId: syncLog.id,
+      syncLogId: syncLog?.id ?? '',
     };
 
-    await prisma.boltSyncLog.update({
-      where: { id: syncLog.id },
-      data: {
-        status: errored > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
-        completedAt: new Date(),
-        recordsFetched: result.fetched,
-        recordsCreated: result.created,
-        recordsUpdated: result.updated,
-        recordsMatched: result.matchedToVehicle,
-        recordsErrored: result.errored,
-        durationMs: result.durationMs,
-      },
-    });
+    if (syncLog) {
+      await prisma.boltSyncLog.update({
+        where: { id: syncLog.id },
+        data: {
+          status: errored > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
+          completedAt: new Date(),
+          recordsFetched: result.fetched,
+          recordsCreated: result.created,
+          recordsUpdated: result.updated,
+          recordsMatched: result.matchedToVehicle,
+          recordsErrored: result.errored,
+          durationMs: result.durationMs,
+        },
+      });
+    }
 
     return result;
   } catch (err) {
-    await prisma.boltSyncLog.update({
-      where: { id: syncLog.id },
-      data: {
-        status: 'FAILED',
-        completedAt: new Date(),
-        errorMessage: (err as Error).message,
-        durationMs: Date.now() - startedAt,
-      },
-    });
+    if (syncLog) {
+      await prisma.boltSyncLog.update({
+        where: { id: syncLog.id },
+        data: {
+          status: 'FAILED',
+          completedAt: new Date(),
+          errorMessage: (err as Error).message,
+          durationMs: Date.now() - startedAt,
+        },
+      });
+    }
     throw err;
   }
 }

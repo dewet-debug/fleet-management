@@ -123,6 +123,7 @@ async function runInternal(
         timeRangeFilterType,
         triggeredBy: 'console',
         pageLimit: 1000,
+        logToDb: false, // the outer log (this run) is the single source of truth
       });
       totals.fetched += r.fetched;
       totals.created += r.created;
