@@ -6,5 +6,6 @@ const router = Router();
 
 router.use(authenticate);
 router.get('/profitability', analyticsController.vehicleProfitability);
+router.get('/driver-performance', analyticsController.driverPerformance);
 
 export default router;

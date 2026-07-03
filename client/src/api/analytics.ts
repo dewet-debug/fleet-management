@@ -46,3 +46,44 @@ export async function fetchProfitability(params: { dateFrom?: string; dateTo?: s
   );
   return data.data;
 }
+
+export interface DriverPerformance {
+  driverUuid: string;
+  driverName: string | null;
+  offered: number;
+  accepted: number;
+  rejected: number;
+  noResponse: number;
+  cancelledAfterAccept: number;
+  finished: number;
+  grossRevenue: number;
+  netEarnings: number;
+  activeDays: number;
+  acceptanceRate: number | null;
+  completionRate: number | null;
+  cancellationRate: number | null;
+  revenuePerActiveDay: number | null;
+}
+
+export interface DriverPerformanceResponse {
+  window: { from: string; to: string };
+  totals: {
+    drivers: number;
+    offered: number;
+    accepted: number;
+    finished: number;
+    grossRevenue: number;
+    netEarnings: number;
+    acceptanceRate: number | null;
+    completionRate: number | null;
+  };
+  drivers: DriverPerformance[];
+}
+
+export async function fetchDriverPerformance(params: { dateFrom?: string; dateTo?: string }) {
+  const { data } = await client.get<{ success: boolean; data: DriverPerformanceResponse }>(
+    '/analytics/driver-performance',
+    { params },
+  );
+  return data.data;
+}
