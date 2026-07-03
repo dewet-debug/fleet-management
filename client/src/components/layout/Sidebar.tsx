@@ -101,6 +101,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: {
           <>
             <GroupLabel>Integrations</GroupLabel>
             <div className="space-y-0.5">
+              <NavItem to="/admin/bolt" icon={HiOutlineReceiptPercent} label="Bolt" health onNavigate={onClose} />
               {isAdmin && <NavItem to="/admin/cartrack" icon={HiOutlineSignal} label="Cartrack" health onNavigate={onClose} />}
               <NavItem to="/admin/a49" icon={HiOutlineBolt} label="MNC · A49" health onNavigate={onClose} />
             </div>
