@@ -42,7 +42,7 @@ export interface VehiclesParams {
 
 export interface PaginatedResponse<T> {
   data: T[];
-  meta: {
+  pagination: {
     total: number;
     page: number;
     limit: number;

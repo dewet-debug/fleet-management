@@ -125,10 +125,10 @@ export default function UserManagementPage() {
               }
             }}
           />
-          {data?.meta && data.meta.totalPages > 1 && (
+          {data?.pagination && data.pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="font-mono text-xs text-ink-faint">{data.meta.total} users</p>
-              <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
+              <p className="font-mono text-xs text-ink-faint">{data.pagination.total} users</p>
+              <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
             </div>
           )}
         </>

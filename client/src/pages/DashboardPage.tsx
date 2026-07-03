@@ -22,7 +22,10 @@ function last30Days() {
   const to = new Date();
   const from = new Date();
   from.setDate(from.getDate() - 30);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  // Use LOCAL date parts (not toISOString/UTC) so "today" is the local SAST day,
+  // not shifted back one day between local midnight and 02:00.
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   return { dateFrom: iso(from), dateTo: iso(to) };
 }
 

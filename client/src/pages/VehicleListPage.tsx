@@ -159,14 +159,14 @@ export default function VehicleListPage() {
             }}
           />
 
-          {data?.meta && (
+          {data?.pagination && (
             <div className="flex items-center justify-between">
               <p className="font-mono text-xs text-ink-faint">
-                Showing {data.data.length ? (data.meta.page - 1) * data.meta.limit + 1 : 0}
-                –{(data.meta.page - 1) * data.meta.limit + data.data.length} of {int(data.meta.total)}
+                Showing {data.data.length ? (data.pagination.page - 1) * data.pagination.limit + 1 : 0}
+                –{(data.pagination.page - 1) * data.pagination.limit + data.data.length} of {int(data.pagination.total)}
               </p>
-              {data.meta.totalPages > 1 && (
-                <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
+              {data.pagination.totalPages > 1 && (
+                <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
               )}
             </div>
           )}

@@ -32,8 +32,10 @@ function buildTripWhere(params: Omit<ListBoltTripsParams, 'page' | 'limit'>): Pr
 
   if (params.dateFrom || params.dateTo) {
     const createdAt: Prisma.DateTimeFilter = {};
-    if (params.dateFrom) createdAt.gte = new Date(`${params.dateFrom}T00:00:00`);
-    if (params.dateTo) createdAt.lte = new Date(`${params.dateTo}T23:59:59.999`);
+    // Anchor date filters to SAST (UTC+2) day boundaries regardless of server
+    // timezone, matching how the analytics endpoint buckets days.
+    if (params.dateFrom) createdAt.gte = new Date(`${params.dateFrom}T00:00:00+02:00`);
+    if (params.dateTo) createdAt.lte = new Date(`${params.dateTo}T23:59:59.999+02:00`);
     where.orderCreatedAt = createdAt;
   }
 
@@ -126,9 +128,11 @@ const SAST_OFFSET_SEC = 2 * 60 * 60;
  */
 export async function getBoltTripsAnalytics(params: { dateFrom?: string; dateTo?: string }) {
   const now = new Date();
-  const end = params.dateTo ? new Date(`${params.dateTo}T23:59:59.999`) : now;
+  // Date bounds anchored to SAST (UTC+2) so they align with the +7200s day
+  // bucketing below regardless of the server's own timezone.
+  const end = params.dateTo ? new Date(`${params.dateTo}T23:59:59.999+02:00`) : now;
   const start = params.dateFrom
-    ? new Date(`${params.dateFrom}T00:00:00`)
+    ? new Date(`${params.dateFrom}T00:00:00+02:00`)
     : new Date(now.getTime() - 13 * 24 * 60 * 60 * 1000);
 
   const dailyTrend = await prisma.$queryRaw<

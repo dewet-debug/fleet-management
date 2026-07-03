@@ -136,8 +136,8 @@ export default function DriverListPage() {
               }
             }}
           />
-          {data?.meta && data.meta.totalPages > 1 && (
-            <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
+          {data?.pagination && data.pagination.totalPages > 1 && (
+            <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
           )}
         </>
       )}

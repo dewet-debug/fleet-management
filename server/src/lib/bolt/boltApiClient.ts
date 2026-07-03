@@ -71,8 +71,11 @@ export class BoltApiClient {
         }
 
         if (axErr.response?.status === 429) {
+          // Retry-After may be seconds or an HTTP-date; fall back to the default
+          // backoff when it isn't a finite number of seconds (parseInt of a date → NaN).
           const retryAfter = axErr.response.headers['retry-after'];
-          const delay = retryAfter ? parseInt(String(retryAfter), 10) * 1000 : RATE_LIMIT_BACKOFF_MS;
+          const seconds = retryAfter !== undefined ? parseInt(String(retryAfter), 10) : NaN;
+          const delay = Number.isFinite(seconds) ? seconds * 1000 : RATE_LIMIT_BACKOFF_MS;
           console.warn(`[Bolt] Rate limited, waiting ${delay}ms before retry`);
           await new Promise((r) => setTimeout(r, delay));
           continue;
