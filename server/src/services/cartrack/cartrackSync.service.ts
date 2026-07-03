@@ -8,6 +8,11 @@ import { syncDrivers, syncDriverLinkages } from './driverSync.service';
 import { syncAlerts } from './alertSync.service';
 import { syncFuel } from './fuelSync.service';
 import { syncVehicleGroups } from './vehicleGroupSync.service';
+import { syncCoaching } from './coachingSync.service';
+import { syncVehicleEvents } from './vehicleEventSync.service';
+import { syncGeofences, syncGeofenceVisits } from './geofenceSync.service';
+import { syncReminders } from './reminderSync.service';
+import { syncPois } from './poiSync.service';
 
 let isSyncRunning = false;
 
@@ -41,7 +46,9 @@ async function getClient(): Promise<CartrackApiClient | null> {
 
 export { getClient as getCartrackClient };
 
-type SyncType = 'FULL' | 'VEHICLES' | 'TRIPS' | 'DRIVERS' | 'DRIVER_LINKAGE' | 'ALERTS' | 'FUEL' | 'VEHICLE_GROUPS';
+type SyncType =
+  | 'FULL' | 'VEHICLES' | 'TRIPS' | 'DRIVERS' | 'DRIVER_LINKAGE' | 'ALERTS' | 'FUEL' | 'VEHICLE_GROUPS'
+  | 'COACHING' | 'GEOFENCES' | 'GEOFENCE_VISITS' | 'VEHICLE_EVENTS' | 'REMINDERS' | 'POIS';
 
 export async function runSync(
   syncType: SyncType,
@@ -126,6 +133,12 @@ async function runSyncInternal(
       { type: 'ALERTS', enabled: config.alertSyncEnabled, fn: () => syncAlerts(client, sinceDate) },
       { type: 'FUEL', enabled: config.fuelSyncEnabled, fn: () => syncFuel(client, sinceDate) },
       { type: 'VEHICLE_GROUPS', enabled: true, fn: () => syncVehicleGroups(client) },
+      { type: 'COACHING', enabled: config.coachingSyncEnabled, fn: () => syncCoaching(client, sinceDate) },
+      { type: 'GEOFENCES', enabled: config.geofenceSyncEnabled, fn: () => syncGeofences(client) },
+      { type: 'GEOFENCE_VISITS', enabled: config.geofenceSyncEnabled, fn: () => syncGeofenceVisits(client, sinceDate) },
+      { type: 'VEHICLE_EVENTS', enabled: config.vehicleEventSyncEnabled, fn: () => syncVehicleEvents(client, sinceDate) },
+      { type: 'REMINDERS', enabled: config.reminderSyncEnabled, fn: () => syncReminders(client) },
+      { type: 'POIS', enabled: config.poiSyncEnabled, fn: () => syncPois(client) },
     ];
 
     for (const step of syncSteps) {

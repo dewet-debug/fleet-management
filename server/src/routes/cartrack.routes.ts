@@ -40,4 +40,12 @@ router.get('/vehicles/:id/fuel', cartrackController.getVehicleFuel);
 router.get('/drivers', cartrackController.getDrivers);
 router.get('/vehicle-groups', cartrackController.getVehicleGroups);
 
+// Extended synced-data views
+router.get('/coaching-events', cartrackController.getCoachingEvents);
+router.get('/geofences', cartrackController.getGeofences);
+router.get('/geofence-visits', cartrackController.getGeofenceVisits);
+router.get('/vehicle-events', cartrackController.getVehicleEvents);
+router.get('/reminders', cartrackController.getReminders);
+router.get('/pois', cartrackController.getPois);
+
 export default router;
