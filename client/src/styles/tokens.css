@@ -1,0 +1,63 @@
+/* Assemble49 "Signal" — token layer.
+ * The mechanism behind dark mode + density: every Tailwind colour in
+ * tailwind.config.js points at one of these variables, so flipping the
+ * `.dark` (or `.compact`) class on <html> re-themes the whole app with
+ * zero component changes.
+ *
+ * Imported first in src/index.css, before @tailwind.
+ */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* brand — full ramp so every primary-{shade} utility resolves */
+  --primary: #40427a;      /* indigo — buttons, active nav, links (== primary-500) */
+  --primary-50:  #eeeef8;  /* active-nav bg */
+  --primary-200: #bbbce1;  /* chip borders */
+  --primary-300: #9596cf;  /* disabled fills */
+  --primary-400: #6365a4;  /* focus borders */
+  --primary-600: #343565;  /* hover */
+  --primary-700: #2a2b50;  /* link / active text */
+  --primary-800: #232340;
+  --peri: #9596cf;         /* periwinkle accent — chart lines, logo ring */
+
+  /* cool-paper neutrals */
+  --bg: #f4f5f8; --card: #ffffff; --sunken: #f8f9fc; --border: #e2e3ec; --hair: #ecedf3; --faintline: #f1f2f7;
+
+  /* ink */
+  --ink: #1e1e2a; --num: #232430; --body: #3e3f4b; --muted: #696a78; --faint: #9597a5; --ghost: #a2a4b1;
+
+  /* semantic (text + tinted pill bg) */
+  --success: #17935b; --success-bg: #e4f4ec;
+  --warning: #bd7f14; --warning-bg: #f7edd6;
+  --info:    #2f6ea8; --info-bg:    #e6eff7;
+  --danger:  #b0392f; --danger-bg:  #f6e6e3;
+  --neutral: #6b7688; --neutral-bg: #eceef2;
+
+  /* elevation + density */
+  --sh: 0 1px 2px rgba(30,30,42,.05);
+  --pad: 18px; --rpad: 12px; --gap: 16px;
+}
+
+.dark {
+  --primary: #7b7dc4; --primary-50: #282a4a; --primary-200: #34365e; --primary-300: #4a4c7e;
+  --primary-400: #6a6cb4; --primary-600: #8f91d2; --primary-700: #b9bae4; --primary-800: #cbccec;
+  --peri: #a3a4dc;
+
+  --bg: #111220; --card: #1b1c2b; --sunken: #212237; --border: #2d2f45; --hair: #282a40; --faintline: #23253a;
+
+  --ink: #f1f1f7; --num: #ffffff; --body: #c8cad8; --muted: #9092a4; --faint: #71738a; --ghost: #5f6178;
+
+  --success: #4cc38a; --success-bg: rgba(26,163,101,.18);
+  --warning: #e0a52e; --warning-bg: rgba(203,142,32,.18);
+  --info:    #6ba3d8; --info-bg:    rgba(70,133,196,.20);
+  --danger:  #e0776b; --danger-bg:  rgba(200,90,80,.20);
+  --neutral: #9aa3b6; --neutral-bg: rgba(120,132,152,.20);
+
+  --sh: 0 1px 2px rgba(0,0,0,.35);
+}
+
+/* density: comfortable (default) → compact */
+.compact { --pad: 12px; --rpad: 8px; --gap: 12px; }
+
+body { background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", system-ui, sans-serif; }
+.font-mono, [class*="font-mono"] { font-variant-numeric: tabular-nums; }

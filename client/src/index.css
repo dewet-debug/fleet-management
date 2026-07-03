@@ -1,8 +1,7 @@
-/* Assemble49 Fleet — Signal base layer.
-   Only what can't be a utility class lives here: the font faces + body reset.
-   Everything else is Tailwind tokens (see tailwind.config.js). */
-
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+/* Assemble49 Fleet Console — entry CSS.
+   tokens.css defines the light/.dark/.compact variables (and imports the fonts)
+   that every Tailwind colour points at; it must load before @tailwind. */
+@import './styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -10,23 +9,16 @@
 
 @layer base {
   html, body, #root { height: 100%; }
-  /* Raw values (not @apply of custom theme colours) so the base layer never
-     hits a Vite/Tailwind HMR re-transform race on the paper/ink tokens. */
   body {
-    background-color: #f4f5f8; /* paper-bg */
-    color: #1e1e2a;            /* ink */
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  /* tabular figures for the mono face so columns align */
-  .font-mono { font-variant-numeric: tabular-nums; }
 }
 
-/* Thin, unobtrusive scrollbars to match the utilitarian tone */
+/* Thin scrollbars — var-based so they follow dark mode */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb {
-  background: #d4d3cd;
+  background: var(--border);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;

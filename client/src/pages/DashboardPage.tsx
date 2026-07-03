@@ -1,21 +1,28 @@
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   useDashboardMetrics,
-  useDashboardActivity,
   useDashboardAlerts,
 } from '../hooks/useDashboard';
 import { useBoltTripsSummary, useBoltTrips, useBoltSyncLogs, useBoltAnalytics } from '../hooks/useBolt';
-import { Card, Stat, Badge, StatusBadge, Table, LoadingSpinner } from '../components/ui';
+import { Card, Badge, StatusBadge, Table, LoadingSpinner } from '../components/ui';
 import type { BoltTrip } from '../api/bolt';
 import { zar, int, lastSynced } from '../theme/format';
-import { RevenueTrendChart, PaymentMixDonut, CompletionFunnel, TopVehiclesBars, type TripDrill } from '../components/bolt/charts';
+import { Sparkline } from '../components/charts/Sparkline';
+import { Donut } from '../components/charts/Donut';
+import { RevenueTrendChart } from '../components/charts/RevenueTrendChart';
+import { CompletionFunnel, TopVehiclesBars, type TripDrill } from '../components/bolt/charts';
 import {
-  HiOutlineTruck,
   HiOutlinePlus,
   HiOutlineWrench,
   HiOutlineExclamationTriangle,
   HiOutlineArrowRight,
   HiOutlineBolt,
+  HiOutlineBanknotes,
+  HiOutlineCheckCircle,
+  HiOutlineCurrencyDollar,
+  HiOutlineTruck,
+  HiOutlineLink,
 } from 'react-icons/hi2';
 
 /** Last-30-days window, computed client-side for the Bolt figures. */
@@ -47,46 +54,57 @@ const RECENT_COLUMNS = [
 ];
 const RECENT_TEMPLATE = '120px 130px 1fr 120px 90px';
 
-/** Fleet composition donut with a clickable legend. */
-function FleetDonut({
-  segments,
-  total,
-}: {
-  segments: { label: string; count: number; color: string; link: string }[];
-  total: number;
-}) {
-  let acc = 0;
-  const stops = segments
-    .filter((s) => s.count > 0)
-    .map((s) => {
-      const start = (acc / (total || 1)) * 360;
-      acc += s.count;
-      const end = (acc / (total || 1)) * 360;
-      return `${s.color} ${start}deg ${end}deg`;
-    })
-    .join(', ');
+const PAY_PALETTE = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--info)', 'var(--neutral)'];
+
+/** ▲▼ delta vs the prior period. Green up / red down. Guards prev=0. */
+function Delta({ cur, prev }: { cur: number; prev: number }) {
+  if (!prev) return <span className="font-mono text-xs text-ink-ghost">—</span>;
+  const d = ((cur - prev) / prev) * 100;
+  const up = d >= 0;
   return (
-    <div className="flex items-center gap-5">
-      <div className="relative shrink-0" style={{ width: 116, height: 116 }}>
-        <div className="h-full w-full rounded-pill" style={{ background: stops ? `conic-gradient(${stops})` : '#eceef2' }} />
-        <div className="absolute inset-[22px] grid place-items-center rounded-pill bg-paper-card text-center">
-          <div>
-            <p className="font-mono text-lg font-semibold text-ink-strong">{int(total)}</p>
-            <p className="font-mono text-meta uppercase tracking-wider text-ink-ghost">vehicles</p>
+    <span className={`font-mono text-xs font-semibold ${up ? 'text-success' : 'text-danger'}`}>
+      {up ? '▲' : '▼'} {Math.abs(d).toFixed(1)}%
+    </span>
+  );
+}
+
+/** Command-centre KPI tile: icon chip + mono stat + ▲▼ delta + right sparkline. */
+function KpiCard({
+  icon,
+  label,
+  value,
+  valueClassName = 'text-ink-strong',
+  sub,
+  delta,
+  spark,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  valueClassName?: string;
+  sub?: React.ReactNode;
+  delta?: React.ReactNode;
+  spark?: React.ReactNode;
+}) {
+  return (
+    <Card bodyClassName="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-2.5 flex items-center gap-2">
+            <span className="grid h-8 w-8 place-items-center rounded-control bg-primary-50 text-primary-700">
+              {icon}
+            </span>
+            <span className="truncate font-mono text-meta uppercase tracking-wider text-ink-ghost">{label}</span>
+          </div>
+          <p className={`font-mono text-stat font-semibold ${valueClassName}`}>{value}</p>
+          <div className="mt-1 flex items-center gap-2">
+            {delta}
+            {sub && <span className="text-xs text-ink-ghost">{sub}</span>}
           </div>
         </div>
+        {spark && <div className="shrink-0 pt-0.5">{spark}</div>}
       </div>
-      <div className="min-w-0 flex-1 space-y-1.5">
-        {segments.map((s) => (
-          <Link key={s.label} to={s.link} className="flex items-center gap-2 text-sm hover:underline">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
-            <span className="flex-1 truncate text-ink-body">{s.label}</span>
-            <span className="font-mono text-xs text-ink-strong">{int(s.count)}</span>
-            <span className="w-9 text-right font-mono text-xs text-ink-faint">{Math.round(pct(s.count, total))}%</span>
-          </Link>
-        ))}
-      </div>
-    </div>
+    </Card>
   );
 }
 
@@ -127,9 +145,15 @@ export default function DashboardPage() {
   const gross = boltSummary?.revenue.grossFare ?? 0;
   const net = boltSummary?.revenue.netEarnings ?? 0;
   const commission = boltSummary?.revenue.commission ?? 0;
-  const attempts = boltSummary?.totalOrders ?? 0;
   const finished = boltSummary?.finishedTrips ?? 0;
-  const finishedPct = pct(finished, attempts);
+  const unmatched = boltSummary?.unmatchedToVehicle ?? 0;
+
+  const dailyTrend = analytics?.dailyTrend ?? [];
+  const previous = analytics?.previous ?? { attempts: 0, finished: 0, gross: 0, net: 0 };
+  const paymentMix = analytics?.paymentMix ?? [];
+  const funnel = analytics?.funnel ?? { attempts: 0, accepted: 0, finished: 0, netPaid: 0 };
+  const topVehicles = analytics?.topVehicles ?? [];
+  const payTotal = paymentMix.reduce((s, p) => s + p.count, 0) || 1;
 
   const latestSync = syncLogs?.data?.[0];
 
@@ -137,13 +161,20 @@ export default function DashboardPage() {
   // may be wrapped; normalise defensively so either shape renders.
   const alertList: any[] = ((alerts as any)?.data ?? (alerts as any) ?? []) as any[];
 
+  const fleetLegend = [
+    { label: 'Active', count: activeV, color: 'var(--success)', link: '/vehicles?status=ACTIVE' },
+    { label: 'In service', count: inServiceV, color: 'var(--warning)', link: '/vehicles?status=IN_SERVICE' },
+    { label: 'Out', count: outV, color: 'var(--danger)', link: '/vehicles?status=OUT_OF_SERVICE' },
+    { label: 'Retired', count: retiredV, color: 'var(--neutral)', link: '/vehicles?status=RETIRED' },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* 1 — page header */}
+      {/* page header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-bold text-ink">Dashboard</h1>
-          <p className="font-mono text-xs text-ink-faint">Fleet operations overview</p>
+          <h1 className="text-xl font-bold text-ink">Command centre</h1>
+          <p className="font-mono text-xs text-ink-faint">Fleet operations overview · last 30 days</p>
         </div>
         <div className="flex gap-2">
           <Link to="/vehicles" className={primaryBtn}>
@@ -158,123 +189,169 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 2 — KPI strip */}
-      <Card bodyClassName="p-0">
-        <div className="grid grid-cols-2 divide-x divide-y divide-paper-hair lg:grid-cols-4 lg:divide-y-0">
-          <Stat
-            label="Active vehicles"
-            value={metricsLoading ? '—' : int(activeV)}
-            sub={metricsLoading ? undefined : `of ${int(totalVehicles)} total`}
-            valueClassName="text-success"
-          />
-          <Stat
-            label="Services due"
-            value={metricsLoading ? '—' : int(m?.pendingServices ?? 0)}
-            valueClassName="text-warning"
-          />
-          <Stat
-            label="Active drivers"
-            value={metricsLoading ? '—' : int(m?.activeDrivers ?? 0)}
-          />
-          <Stat
-            label="Unmatched Bolt trips"
-            value={boltLoading ? '—' : int(boltSummary?.unmatchedToVehicle ?? 0)}
-            valueClassName={
-              (boltSummary?.unmatchedToVehicle ?? 0) > 0 ? 'text-danger' : 'text-ink-strong'
-            }
-          />
-        </div>
-      </Card>
+      {/* 1 — KPI strip */}
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(212px, 1fr))' }}>
+        <KpiCard
+          icon={<HiOutlineBanknotes className="text-base" />}
+          label="Net revenue 30d"
+          value={boltLoading ? '—' : zar(net)}
+          valueClassName="text-success"
+          delta={<Delta cur={net} prev={previous.net} />}
+          spark={<Sparkline data={dailyTrend.map((d) => d.net)} color="var(--success)" />}
+        />
+        <KpiCard
+          icon={<HiOutlineCheckCircle className="text-base" />}
+          label="Finished trips 30d"
+          value={boltLoading ? '—' : int(finished)}
+          delta={<Delta cur={finished} prev={previous.finished} />}
+          spark={<Sparkline data={dailyTrend.map((d) => d.finished)} color="var(--peri)" />}
+        />
+        <KpiCard
+          icon={<HiOutlineCurrencyDollar className="text-base" />}
+          label="Gross fare 30d"
+          value={boltLoading ? '—' : zar(gross)}
+          delta={<Delta cur={gross} prev={previous.gross} />}
+          spark={<Sparkline data={dailyTrend.map((d) => d.gross)} color="var(--peri)" />}
+        />
+        <KpiCard
+          icon={<HiOutlineTruck className="text-base" />}
+          label="Active vehicles"
+          value={metricsLoading ? '—' : int(activeV)}
+          sub={metricsLoading ? undefined : `of ${int(totalVehicles)} total`}
+        />
+        <KpiCard
+          icon={<HiOutlineExclamationTriangle className="text-base" />}
+          label="Unmatched trips"
+          value={boltLoading ? '—' : int(unmatched)}
+          valueClassName={unmatched > 0 ? 'text-danger' : 'text-ink-strong'}
+        />
+      </div>
 
-      {/* 3 — Bolt performance + Fleet status */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Bolt performance */}
-        <Card className="lg:col-span-2" title="Bolt performance" subtitle="last 30 days">
+      {/* 2 — Hero row: revenue trend + fleet status */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2" title="Revenue trend" subtitle="last 30 days">
           {boltLoading ? (
             <LoadingSpinner size="md" />
           ) : (
-            <div className="space-y-5">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                    Gross fare
-                  </span>
-                  <span className="font-mono text-stat font-semibold text-success">{zar(gross)}</span>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-x-8 gap-y-2">
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Gross fare</span>
+                  <span className="font-mono text-lg font-semibold text-ink-strong">{zar(gross)}</span>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                    Net earnings
-                  </span>
-                  <span className="font-mono text-stat font-semibold text-ink-strong">{zar(net)}</span>
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Net earnings</span>
+                  <span className="font-mono text-lg font-semibold text-success">{zar(net)}</span>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                    Commission
-                  </span>
-                  <span className="font-mono text-stat font-semibold text-ink-muted">
-                    {zar(commission)}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">Commission</span>
+                  <span className="font-mono text-lg font-semibold text-ink-muted">{zar(commission)}</span>
                 </div>
               </div>
-
-              {/* revenue trend chart */}
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                    Daily gross fare
+              <RevenueTrendChart
+                values={dailyTrend.map((d) => d.gross)}
+                secondary={dailyTrend.map((d) => d.net)}
+                labels={dailyTrend.map((d) => d.day.slice(5))}
+                tickEvery={5}
+              />
+              <div className="flex items-center justify-between border-t border-paper-hair pt-2.5">
+                <div className="flex gap-4 font-mono text-meta uppercase tracking-wider text-ink-ghost">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-sm" style={{ background: 'var(--peri)' }} /> Gross
                   </span>
-                  <span className="font-mono text-xs text-ink-muted">
-                    {int(finished)} / {int(attempts)} orders finished ({finishedPct}%)
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-0 w-4 border-t-2 border-dashed" style={{ borderColor: 'var(--success)' }} /> Net
                   </span>
                 </div>
-                <RevenueTrendChart trend={analytics?.dailyTrend ?? []} height={132} showDayLabels={false} onSelect={drillToTrips} />
-                <div className="mt-3 border-t border-paper-hair pt-2.5 text-right">
-                  <Link
-                    to="/bolt-trips"
-                    className="inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
-                  >
-                    View trips &amp; analytics <HiOutlineArrowRight />
-                  </Link>
-                </div>
+                <Link
+                  to="/bolt-trips"
+                  className="inline-flex items-center gap-1 font-mono text-xs text-primary-700 hover:underline"
+                >
+                  View trips &amp; analytics <HiOutlineArrowRight />
+                </Link>
               </div>
             </div>
           )}
         </Card>
 
-        {/* Fleet status */}
         <Card title="Fleet status">
           {metricsLoading ? (
             <LoadingSpinner size="md" />
           ) : (
-            <FleetDonut
-              total={totalVehicles}
-              segments={[
-                { label: 'Active', count: activeV, color: '#17935b', link: '/vehicles?status=ACTIVE' },
-                { label: 'In service', count: inServiceV, color: '#bd7f14', link: '/vehicles?status=IN_SERVICE' },
-                { label: 'Out of service', count: outV, color: '#b0392f', link: '/vehicles?status=OUT_OF_SERVICE' },
-                { label: 'Retired', count: retiredV, color: '#6b7688', link: '/vehicles?status=RETIRED' },
-              ]}
-            />
+            <div className="space-y-5">
+              <div className="flex justify-center">
+                <Donut
+                  size={148}
+                  centerTop={int(totalVehicles)}
+                  centerSub="vehicles"
+                  segments={[
+                    { value: activeV, color: 'var(--success)' },
+                    { value: inServiceV, color: 'var(--warning)' },
+                    { value: outV, color: 'var(--danger)' },
+                    { value: retiredV, color: 'var(--neutral)' },
+                  ]}
+                />
+              </div>
+              <div className="space-y-1.5">
+                {fleetLegend.map((s) => (
+                  <Link key={s.label} to={s.link} className="flex items-center gap-2 text-sm hover:underline">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+                    <span className="flex-1 truncate text-ink-body">{s.label}</span>
+                    <span className="font-mono text-xs text-ink-strong">{int(s.count)}</span>
+                    <span className="w-9 text-right font-mono text-xs text-ink-faint">
+                      {Math.round(pct(s.count, totalVehicles))}%
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
         </Card>
       </div>
 
-      {/* 4 — Payment mix + funnel + top vehicles */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      {/* 3 — Payment mix + funnel + top vehicles */}
+      <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Payment mix" subtitle="last 30 days">
-          <PaymentMixDonut paymentMix={analytics?.paymentMix ?? []} onSelect={drillToTrips} />
+          <div className="flex items-center gap-5">
+            <div className="shrink-0">
+              <Donut
+                size={132}
+                centerTop={int(finished)}
+                centerSub="trips"
+                segments={paymentMix.map((p, i) => ({ value: p.count, color: PAY_PALETTE[i % 5] }))}
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              {paymentMix.map((p, i) => (
+                <div
+                  key={p.method}
+                  onClick={() => drillToTrips({ paymentMethod: p.method, status: 'finished' })}
+                  className="flex cursor-pointer items-center gap-2 rounded-control px-1 py-0.5 text-sm hover:bg-paper-sunken"
+                >
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: PAY_PALETTE[i % 5] }} />
+                  <span className="flex-1 truncate capitalize text-ink-body">{p.method.replace(/_/g, ' ')}</span>
+                  <span className="font-mono text-xs text-ink-muted">{int(p.count)}</span>
+                  <span className="w-9 text-right font-mono text-xs text-ink-faint">
+                    {Math.round(pct(p.count, payTotal))}%
+                  </span>
+                </div>
+              ))}
+              {paymentMix.length === 0 && <p className="text-sm text-ink-faint">No finished trips in window.</p>}
+            </div>
+          </div>
         </Card>
+
         <Card title="Completion funnel" subtitle="last 30 days">
-          <CompletionFunnel funnel={analytics?.funnel ?? { attempts: 0, accepted: 0, finished: 0, netPaid: 0 }} onSelect={drillToTrips} />
+          <CompletionFunnel funnel={funnel} onSelect={drillToTrips} />
         </Card>
+
         <Card title="Top earning vehicles" subtitle="last 30 days">
-          <TopVehiclesBars topVehicles={analytics?.topVehicles ?? []} onSelect={drillToTrips} />
+          <TopVehiclesBars topVehicles={topVehicles} onSelect={drillToTrips} />
         </Card>
       </div>
 
-      {/* 5 — Recent Bolt trips + Needs attention */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recent Bolt trips */}
+      {/* 4 — Recent Bolt trips + Needs attention / Integrations */}
+      <div className="grid gap-4 lg:grid-cols-3">
         <Card
           className="lg:col-span-2"
           title="Recent Bolt trips"
@@ -341,7 +418,6 @@ export default function DashboardPage() {
           )}
         </Card>
 
-        {/* Needs attention + Integrations */}
         <Card title="Needs attention">
           {alertsLoading ? (
             <LoadingSpinner size="md" />
@@ -372,9 +448,7 @@ export default function DashboardPage() {
 
               {/* Integrations freshness */}
               <div className="border-t border-paper-hair pt-3">
-                <p className="mb-2 font-mono text-meta uppercase tracking-wider text-ink-ghost">
-                  Integrations
-                </p>
+                <p className="mb-2 font-mono text-meta uppercase tracking-wider text-ink-ghost">Integrations</p>
                 <Link
                   to="/bolt-trips"
                   className="flex items-center gap-2.5 rounded-control px-1 py-1.5 hover:bg-paper-sunken"
@@ -389,6 +463,14 @@ export default function DashboardPage() {
                     {latestSync ? lastSynced(latestSync.startedAt) : 'no syncs'}
                   </span>
                 </Link>
+                <div className="flex items-center gap-2.5 rounded-control px-1 py-1.5">
+                  <span className="flex h-2 w-2 flex-shrink-0">
+                    <span className="inline-flex h-2 w-2 rounded-pill bg-warning" />
+                  </span>
+                  <HiOutlineLink className="flex-shrink-0 text-ink-muted" />
+                  <span className="flex-1 text-sm text-ink-body">Cartrack</span>
+                  <Badge tone="warning">awaiting creds</Badge>
+                </div>
               </div>
             </div>
           )}

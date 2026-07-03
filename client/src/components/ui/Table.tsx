@@ -31,7 +31,7 @@ export function Table<T extends { id: string | number }>({
     <div className="overflow-hidden rounded-card border border-paper-line bg-paper-card">
       <div className="overflow-x-auto">
         <div
-          className="grid gap-2 border-b border-paper-hair bg-paper-sunken px-[18px] py-2.5 font-mono text-meta uppercase tracking-wide text-ink-ghost"
+          className="grid gap-2 border-b border-paper-hair bg-paper-sunken px-pad py-2.5 font-mono text-meta uppercase tracking-wide text-ink-ghost"
           style={{ gridTemplateColumns: template }}
         >
           {columns.map((c) => (
@@ -39,14 +39,14 @@ export function Table<T extends { id: string | number }>({
           ))}
         </div>
         {rows.length === 0 && (
-          <div className="px-[18px] py-10 text-center text-sm text-ink-faint">{emptyMessage}</div>
+          <div className="px-pad py-10 text-center text-sm text-ink-faint">{emptyMessage}</div>
         )}
         {rows.map((row) => (
           <div
             key={row.id}
             onClick={() => onRowClick?.(row)}
             className={clsx(
-              'grid items-center gap-2 border-b border-paper-faint px-[18px] py-3',
+              'grid items-center gap-2 border-b border-paper-faint px-pad py-3',
               onRowClick && 'cursor-pointer hover:bg-paper-sunken'
             )}
             style={{ gridTemplateColumns: template }}
