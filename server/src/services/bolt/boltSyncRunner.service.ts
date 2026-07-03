@@ -30,16 +30,20 @@ function addDaysYMD(ymd: string, days: number): string {
 
 export async function getBoltStatus() {
   const connected = credsPresent();
-  const [totalTrips, lastLog, lastTrip] = await Promise.all([
+  const [totalTrips, lastLog, lastTrip, firstTrip, companies] = await Promise.all([
     prisma.boltTrip.count(),
     prisma.boltSyncLog.findFirst({ orderBy: { startedAt: 'desc' } }),
     prisma.boltTrip.findFirst({ orderBy: { orderCreatedAt: 'desc' }, select: { orderCreatedAt: true } }),
+    prisma.boltTrip.findFirst({ orderBy: { orderCreatedAt: 'asc' }, select: { orderCreatedAt: true } }),
+    prisma.boltTrip.findMany({ where: { companyId: { not: null } }, distinct: ['companyId'], select: { companyId: true } }),
   ]);
   return {
     connected,
     tokenUrl: env.BOLT_OIDC_TOKEN_URL,
     scope: env.BOLT_OAUTH_SCOPE,
+    companyIds: companies.map((c) => c.companyId).filter((x): x is number => x != null),
     totalTrips,
+    earliestTripAt: firstTrip?.orderCreatedAt ?? null,
     latestTripAt: lastTrip?.orderCreatedAt ?? null,
     lastSync: lastLog
       ? { id: lastLog.id, status: lastLog.status, startedAt: lastLog.startedAt, completedAt: lastLog.completedAt }
@@ -52,7 +56,12 @@ export async function getBoltStatus() {
  * Kicks off a background download for the given SAST date range. Returns the
  * sync-log id immediately; the console watches the log for progress/result.
  */
-export async function startBoltTripsSync(params: { dateFrom: string; dateTo: string; triggeredBy?: string }) {
+export async function startBoltTripsSync(params: {
+  dateFrom: string;
+  dateTo: string;
+  timeRangeFilterType?: 'created' | 'price_review';
+  triggeredBy?: string;
+}) {
   if (!credsPresent()) {
     throw Object.assign(new Error('Bolt credentials are not configured (BOLT_CLIENT_ID / BOLT_CLIENT_SECRET).'), { status: 400 });
   }
@@ -74,14 +83,19 @@ export async function startBoltTripsSync(params: { dateFrom: string; dateTo: str
   });
 
   // fire-and-forget
-  runInternal(log.id, params.dateFrom, params.dateTo).catch((err) => {
+  runInternal(log.id, params.dateFrom, params.dateTo, params.timeRangeFilterType).catch((err) => {
     console.error('[Bolt] Unhandled sync error:', err);
   });
 
   return { syncLogId: log.id };
 }
 
-async function runInternal(logId: string, dateFrom: string, dateTo: string) {
+async function runInternal(
+  logId: string,
+  dateFrom: string,
+  dateTo: string,
+  timeRangeFilterType?: 'created' | 'price_review',
+) {
   isBoltSyncRunning = true;
   const started = Date.now();
   const totals = { fetched: 0, created: 0, updated: 0, matched: 0, errored: 0 };
@@ -106,6 +120,7 @@ async function runInternal(logId: string, dateFrom: string, dateTo: string) {
         companyIds,
         startTs,
         endTs,
+        timeRangeFilterType,
         triggeredBy: 'console',
         pageLimit: 1000,
       });

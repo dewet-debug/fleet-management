@@ -16,9 +16,11 @@ export async function status(_req: Request, res: Response, next: NextFunction) {
 
 export async function triggerSync(req: Request, res: Response, next: NextFunction) {
   try {
+    const trft = req.body?.timeRangeFilterType;
     const result = await startBoltTripsSync({
       dateFrom: req.body?.dateFrom,
       dateTo: req.body?.dateTo,
+      timeRangeFilterType: trft === 'price_review' ? 'price_review' : trft === 'created' ? 'created' : undefined,
       triggeredBy: 'console',
     });
     res.json({ success: true, data: result });
