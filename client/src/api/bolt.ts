@@ -116,18 +116,22 @@ export interface BoltStatus {
   connected: boolean;
   tokenUrl: string;
   scope: string;
+  companyIds: number[];
   totalTrips: number;
+  earliestTripAt: string | null;
   latestTripAt: string | null;
   lastSync: { id: string; status: string; startedAt: string; completedAt: string | null } | null;
   running: boolean;
 }
+
+export type BoltTimeBasis = 'created' | 'price_review';
 
 export async function fetchBoltStatus() {
   const { data } = await client.get<{ success: boolean; data: BoltStatus }>('/bolt/status');
   return data.data;
 }
 
-export async function triggerBoltSync(params: { dateFrom: string; dateTo: string }) {
+export async function triggerBoltSync(params: { dateFrom: string; dateTo: string; timeRangeFilterType?: BoltTimeBasis }) {
   const { data } = await client.post<{ success: boolean; data: { syncLogId: string } }>('/bolt/trips/sync', params);
   return data.data;
 }
