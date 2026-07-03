@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
+import prisma from '../config/database';
 import { cartrackAdmin } from '../services/cartrack';
 import { runSync } from '../services/cartrack/cartrackSync.service';
 import { getSchedulerStatus as getStatus, restartScheduler } from '../lib/cartrack/syncScheduler';
@@ -157,3 +158,41 @@ export async function getVehicleGroups(req: Request, res: Response, next: NextFu
     res.json({ success: true, ...result });
   } catch (error) { next(error); }
 }
+
+// ---- Extended synced-data views (coaching, geofences, events, reminders, POIs) ----
+
+function paging(req: Request) {
+  const page = Math.max(1, parseInt((req.query.page as string) || '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) || '20', 10)));
+  return { page, limit, skip: (page - 1) * limit };
+}
+
+async function listModel(
+  model: { findMany: (a: any) => Promise<any[]>; count: (a: any) => Promise<number> },
+  req: Request,
+  res: Response,
+  next: NextFunction,
+  orderBy: any,
+) {
+  try {
+    const { page, limit, skip } = paging(req);
+    const [data, total] = await Promise.all([
+      model.findMany({ skip, take: limit, orderBy }),
+      model.count({}),
+    ]);
+    res.json({ success: true, data, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+  } catch (error) { next(error); }
+}
+
+export const getCoachingEvents = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackCoachingEvent, req, res, next, { eventTime: 'desc' });
+export const getGeofences = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackGeofence, req, res, next, { name: 'asc' });
+export const getGeofenceVisits = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackGeofenceVisit, req, res, next, { entryTime: 'desc' });
+export const getVehicleEvents = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackVehicleEvent, req, res, next, { eventTime: 'desc' });
+export const getReminders = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackReminder, req, res, next, { dueDate: 'asc' });
+export const getPois = (req: Request, res: Response, next: NextFunction) =>
+  listModel(prisma.cartrackPoi, req, res, next, { name: 'asc' });

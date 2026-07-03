@@ -141,4 +141,111 @@ export class CartrackApiClient {
   async getVehicleGroups(params?: Record<string, any>) {
     return this.fetchAllPages('/vehicle-groups', params);
   }
+
+  // ============================================================
+  // Extended coverage — additional documented Fleet API endpoints
+  // (see docs/cartrack-api-coverage.md). Loose params follow the same
+  // convention as the core methods above.
+  // ============================================================
+
+  // Driver behaviour / coaching
+  async getCoachingEvents(params?: Record<string, any>) {
+    return this.fetchAllPages('/coaching/events', params);
+  }
+
+  // Geofences
+  async getGeofences(params?: Record<string, any>) {
+    return this.fetchAllPages('/geofences', params);
+  }
+  async getGeofenceGroups(params?: Record<string, any>) {
+    return this.fetchAllPages('/geofences/groups', params);
+  }
+  async getGeofenceVisits(params?: Record<string, any>) {
+    return this.fetchAllPages('/geofences/visits', params);
+  }
+  async getGeofenceVisitors(params?: Record<string, any>) {
+    return this.fetchAllPages('/geofences/visitors', params);
+  }
+
+  // Vehicle events (granular event stream)
+  async getVehicleEvents(params?: Record<string, any>) {
+    return this.fetchAllPages('/vehicles/events', params);
+  }
+  async getVehicleEventTypes(params?: Record<string, any>) {
+    return this.get('/vehicles/events/types', params);
+  }
+  async getVehicleIdlingEvents(registration: string, params?: Record<string, any>) {
+    return this.get(`/vehicles/${encodeURIComponent(registration)}/events/idling`, params);
+  }
+
+  // Reminders (licence / service due)
+  async getFleetReminders(params?: Record<string, any>) {
+    return this.fetchAllPages('/reminders/fleet', params);
+  }
+
+  // Points of interest
+  async getPois(params?: Record<string, any>) {
+    return this.fetchAllPages('/pois', params);
+  }
+
+  // Driver groups
+  async getDriverGroups(params?: Record<string, any>) {
+    return this.fetchAllPages('/drivers/groups', params);
+  }
+
+  // Maintenance (Cartrack service records)
+  async getMaintenance(registration: string, params?: Record<string, any>) {
+    return this.get(`/maintenance/${encodeURIComponent(registration)}`, params);
+  }
+  async getMaintenanceReasons(params?: Record<string, any>) {
+    return this.get('/maintenance/reasons', params);
+  }
+
+  // Electric vehicle telemetry
+  async getVehicleSocLatest(params?: Record<string, any>) {
+    return this.get('/vehicles/soc/latest', params);
+  }
+  async getVehicleChargingLatest(params?: Record<string, any>) {
+    return this.get('/vehicles/charging/latest', params);
+  }
+  async getVehicleRange(params?: Record<string, any>) {
+    return this.get('/vehicles/range', params);
+  }
+  async getEvConsumption(params?: Record<string, any>) {
+    return this.fetchAllPages('/vehicles/ev-consumption', params);
+  }
+
+  // Locate
+  async getNearestVehicles(params?: Record<string, any>) {
+    return this.get('/vehicles/nearest', params);
+  }
+  async getVehicleShareLocationLink(registration: string, params?: Record<string, any>) {
+    return this.get(`/vehicles/${encodeURIComponent(registration)}/share-location-link`, params);
+  }
+
+  // Remote commands (write). Not run by any scheduler — invoke only from an
+  // explicit, authorised UI action.
+  async post<T>(endpoint: string, body?: unknown, params?: Record<string, any>): Promise<T> {
+    await this.throttleForPost();
+    const response = await this.client.post<T>(endpoint, body, { params });
+    return response.data;
+  }
+  async getImmobiliseStatus(params?: Record<string, any>) {
+    return this.get('/vehicles/immobilise/status', params);
+  }
+  async immobiliseVehicle(registration: string, immobilise: boolean) {
+    return this.post(`/vehicles/${encodeURIComponent(registration)}/immobilise`, { immobilise });
+  }
+  async setCentralLocking(registration: string, locked: boolean) {
+    return this.post(`/vehicles/${encodeURIComponent(registration)}/central-locking`, { locked });
+  }
+
+  private async throttleForPost(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.requestDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, this.requestDelayMs - elapsed));
+    }
+    this.lastRequestTime = Date.now();
+  }
 }

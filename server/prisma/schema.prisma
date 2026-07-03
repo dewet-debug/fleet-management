@@ -303,6 +303,11 @@ model CartrackConfig {
   driverSyncEnabled     Boolean  @default(true)
   alertSyncEnabled      Boolean  @default(true)
   fuelSyncEnabled       Boolean  @default(true)
+  coachingSyncEnabled     Boolean @default(true)
+  geofenceSyncEnabled     Boolean @default(true)
+  vehicleEventSyncEnabled Boolean @default(true)
+  reminderSyncEnabled     Boolean @default(true)
+  poiSyncEnabled          Boolean @default(true)
   lastHealthCheck       DateTime?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -325,6 +330,8 @@ model CartrackFleetVehicle {
   cartrackTrips       CartrackTrip[]
   cartrackAlerts      CartrackAlert[]
   cartrackFuelRecords CartrackFuelRecord[]
+  cartrackCoachingEvents CartrackCoachingEvent[]
+  cartrackVehicleEvents  CartrackVehicleEvent[]
 
   @@index([vehicleId])
   @@index([licensePlate])
@@ -509,6 +516,119 @@ model CartrackSyncLog {
   @@index([syncType])
   @@index([status])
   @@index([startedAt])
+}
+
+// ---- Extended Cartrack resources (coaching, geofences, events, reminders, POIs) ----
+
+model CartrackCoachingEvent {
+  id                     String    @id @default(uuid())
+  cartrackEventId        String    @unique
+  cartrackFleetVehicleId String?
+  driverName             String?
+  eventType              String?
+  score                  Float?
+  latitude               Float?
+  longitude              Float?
+  eventTime              DateTime?
+  rawJson                String
+  fetchedAt              DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle? @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([eventType])
+  @@index([eventTime])
+}
+
+model CartrackGeofence {
+  id                String    @id @default(uuid())
+  cartrackGeofenceId String   @unique
+  name              String?
+  type              String?
+  latitude          Float?
+  longitude         Float?
+  radius            Float?
+  rawJson           String
+  fetchedAt         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([cartrackGeofenceId])
+}
+
+model CartrackGeofenceVisit {
+  id                 String    @id @default(uuid())
+  cartrackVisitId    String    @unique
+  cartrackGeofenceId String?
+  cartrackVehicleId  String?
+  geofenceName       String?
+  entryTime          DateTime?
+  exitTime           DateTime?
+  durationMinutes    Float?
+  rawJson            String
+  fetchedAt          DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([cartrackGeofenceId])
+  @@index([cartrackVehicleId])
+  @@index([entryTime])
+}
+
+model CartrackVehicleEvent {
+  id                     String    @id @default(uuid())
+  cartrackEventId        String    @unique
+  cartrackFleetVehicleId String?
+  eventType              String?
+  latitude               Float?
+  longitude              Float?
+  speed                  Float?
+  eventTime              DateTime?
+  rawJson                String
+  fetchedAt              DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  cartrackFleetVehicle CartrackFleetVehicle? @relation(fields: [cartrackFleetVehicleId], references: [id])
+
+  @@index([cartrackFleetVehicleId])
+  @@index([eventType])
+  @@index([eventTime])
+}
+
+model CartrackReminder {
+  id                 String    @id @default(uuid())
+  cartrackReminderId String    @unique
+  registrationNumber String?
+  reminderType       String?
+  title              String?
+  dueDate            DateTime?
+  status             String?
+  rawJson            String
+  fetchedAt          DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([registrationNumber])
+  @@index([dueDate])
+}
+
+model CartrackPoi {
+  id           String    @id @default(uuid())
+  cartrackPoiId String   @unique
+  name         String?
+  category     String?
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  rawJson      String
+  fetchedAt    DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([cartrackPoiId])
 }
 
 // ============================================================
