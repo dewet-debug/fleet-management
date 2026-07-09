@@ -1,5 +1,6 @@
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackDriverResponse, CartrackDriverLinkageResponse } from '../../lib/cartrack';
+import { skippableStatus } from './syncHelpers';
 
 interface SyncResult {
   fetched: number;
@@ -58,7 +59,17 @@ export async function syncDrivers(client: CartrackApiClient): Promise<SyncResult
 export async function syncDriverLinkages(client: CartrackApiClient): Promise<SyncResult> {
   const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
 
-  const linkages = await client.getDriverLinkages() as CartrackDriverLinkageResponse[];
+  let linkages: CartrackDriverLinkageResponse[];
+  try {
+    linkages = (await client.getDriverLinkages()) as CartrackDriverLinkageResponse[];
+  } catch (err) {
+    const skip = skippableStatus(err);
+    if (skip) {
+      console.warn(`[Cartrack] Driver-linkage sync skipped (${skip} — API credentials lack this permission).`);
+      return result;
+    }
+    throw err;
+  }
   result.fetched = linkages.length;
 
   for (const linkage of linkages) {

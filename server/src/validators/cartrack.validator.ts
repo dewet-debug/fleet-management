@@ -13,6 +13,12 @@ export const updateCartrackConfigSchema = z.object({
   fuelSyncEnabled: z.boolean().optional(),
 });
 
+export const testConnectionSchema = z.object({
+  apiBaseUrl: z.string().url().optional(),
+  apiUsername: z.string().optional(),
+  apiPassword: z.string().optional(),
+});
+
 export const addFleetVehicleSchema = z.object({
   vehicleId: z.string().min(1),
   licensePlate: z.string().min(1),

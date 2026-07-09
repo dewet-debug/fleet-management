@@ -1,6 +1,21 @@
 node_modules/
 dist/
 .env
+.env.local
 uploads/
 *.log
 .DS_Store
+
+# SQLite database files are runtime artifacts, never commit them.
+# (The schema lives in prisma/schema.prisma + migrations.)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Generated / exported report artifacts
+vehicles-not-on-cartrack.xlsx
+*.xlsx
+
+# Local source dump — not a build input
+Fleet_Management_Source_Code.txt

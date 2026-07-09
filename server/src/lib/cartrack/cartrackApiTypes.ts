@@ -1,8 +1,13 @@
 // Cartrack API pagination meta
 export interface CartrackPaginationMeta {
   current_page: number;
-  total_pages: number;
-  limit: number;
+  // The Cartrack Fleet API reports the last page as `last_page` (Laravel-style
+  // pagination); older code assumed `total_pages`. Keep both optional so either
+  // shape works.
+  last_page?: number;
+  total_pages?: number;
+  per_page?: number;
+  limit?: number;
   total: number;
 }
 
@@ -26,41 +31,49 @@ export interface CartrackVehicleResponse {
   [key: string]: any;
 }
 
-// GET /vehicles/status
+// GET /vehicles/status — position is nested under `location`, fuel under `fuel`,
+// and the event time is `event_ts`. `ignition` is a boolean despite the name.
 export interface CartrackVehicleStatusResponse {
   vehicle_id: number;
   registration: string;
-  latitude?: number;
-  longitude?: number;
   speed?: number;
-  heading?: number;
-  ignition?: string;
-  last_event_time?: string;
-  fuel_level?: number;
+  bearing?: number;
+  ignition?: boolean;
+  event_ts?: string;
   odometer?: number;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+    position_description?: string;
+    updated?: string;
+  };
+  fuel?: {
+    level?: number | null;
+    precentage_left?: number | null;
+    total_consumed?: number | null;
+  };
   [key: string]: any;
 }
 
-// GET /trips
+// GET /trips — requires `start_timestamp`/`end_timestamp` (format "Y-m-d H:i:s").
+// NOTE: the `vehicle_id` query param is ignored by the API — results are always
+// fleet-wide, so callers must group by each row's `vehicle_id`.
 export interface CartrackTripResponse {
   trip_id: string | number;
   vehicle_id: number;
   registration?: string;
   driver_name?: string;
-  start_time?: string;
-  end_time?: string;
-  start_latitude?: number;
-  start_longitude?: number;
-  end_latitude?: number;
-  end_longitude?: number;
-  start_address?: string;
-  end_address?: string;
-  distance?: number;
-  duration?: number;
+  driver_surname?: string;
+  start_timestamp?: string;
+  end_timestamp?: string;
+  start_coordinates?: { latitude?: number; longitude?: number };
+  end_coordinates?: { latitude?: number; longitude?: number };
+  start_location?: string;
+  end_location?: string;
+  trip_distance?: number; // metres
+  trip_duration_seconds?: number;
   max_speed?: number;
-  average_speed?: number;
-  idle_duration?: number;
-  fuel_used?: number;
+  idle_time_seconds?: number;
   [key: string]: any;
 }
 

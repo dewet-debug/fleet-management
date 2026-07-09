@@ -70,8 +70,10 @@ export const updateCartrackConfig = async (configData: Record<string, any>): Pro
   return data.data;
 };
 
-export const testCartrackConnection = async (): Promise<ConnectionTestResult> => {
-  const { data } = await client.post('/cartrack/config/test-connection');
+export const testCartrackConnection = async (
+  overrides?: { apiBaseUrl?: string; apiUsername?: string; apiPassword?: string },
+): Promise<ConnectionTestResult> => {
+  const { data } = await client.post('/cartrack/config/test-connection', overrides ?? {});
   return data.data;
 };
 

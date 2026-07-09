@@ -1,5 +1,6 @@
 import prisma from '../../config/database';
 import { CartrackApiClient } from '../../lib/cartrack';
+import { fmtTimestamp, skippableStatus } from './syncHelpers';
 
 interface SyncResult {
   fetched: number;
@@ -62,10 +63,24 @@ export async function syncGeofenceVisits(
   const dateFrom = sinceDate || new Date(Date.now() - 24 * 60 * 60 * 1000);
   const dateTo = new Date();
 
-  const visits = (await client.getGeofenceVisits({
-    date_from: dateFrom.toISOString().split('T')[0],
-    date_to: dateTo.toISOString().split('T')[0],
-  })) as any[];
+  // /geofences/visits filters on filter[enter_timestamp]/filter[exit_timestamp]
+  // ("Y-m-d H:i:s") and enforces its own allowed window; treat a 4xx as a skip.
+  let visits: any[];
+  try {
+    visits = (await client.getGeofenceVisits({
+      'filter[enter_timestamp]': fmtTimestamp(dateFrom),
+      'filter[exit_timestamp]': fmtTimestamp(dateTo),
+    })) as any[];
+  } catch (err) {
+    const skip = skippableStatus(err);
+    if (skip) {
+      console.warn(`[Cartrack] Geofence-visits sync skipped (${skip} — not permitted or outside allowed window).`);
+      return result;
+    }
+    console.error('[Cartrack] Error fetching geofence visits:', err);
+    result.errored++;
+    return result;
+  }
 
   result.fetched = visits.length;
 

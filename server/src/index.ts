@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { env } from './config/env';
+import prisma from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { ensureUploadDir } from './utils/fileStorage';
 
@@ -24,6 +25,7 @@ import a49Routes from './routes/a49.routes';
 import boltRoutes from './routes/bolt.routes';
 import trackingRoutes from './routes/tracking.routes';
 import analyticsRoutes from './routes/analytics.routes';
+import reportsRoutes from './routes/reports.routes';
 import { startScheduler } from './lib/cartrack/syncScheduler';
 
 const app = express();
@@ -55,6 +57,7 @@ app.use('/api/v1/a49', a49Routes);
 app.use('/api/v1/bolt', boltRoutes);
 app.use('/api/v1/tracking', trackingRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/reports', reportsRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -62,8 +65,32 @@ app.use(errorHandler);
 // Start server
 ensureUploadDir();
 
+/**
+ * Clear sync logs orphaned in RUNNING/STARTED/IN_PROGRESS by a previous crash or
+ * restart (the in-memory "is running" flags reset on boot, but the DB rows do
+ * not). Otherwise they linger forever and read as "stuck".
+ */
+async function clearOrphanedSyncLogs() {
+  try {
+    const bolt = await prisma.boltSyncLog.updateMany({
+      where: { status: 'RUNNING' },
+      data: { status: 'FAILED', errorMessage: 'Interrupted by a server restart', completedAt: new Date() },
+    });
+    const cartrack = await prisma.cartrackSyncLog.updateMany({
+      where: { status: { in: ['STARTED', 'IN_PROGRESS'] } },
+      data: { status: 'CANCELLED', errorMessage: 'Interrupted by a server restart', completedAt: new Date() },
+    });
+    if (bolt.count || cartrack.count) {
+      console.log(`[startup] Cleared orphaned sync logs — bolt: ${bolt.count}, cartrack: ${cartrack.count}`);
+    }
+  } catch (err) {
+    console.error('[startup] Failed to clear orphaned sync logs:', err);
+  }
+}
+
 app.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
+  clearOrphanedSyncLogs();
   startScheduler().catch((err) => console.error('Failed to start Cartrack scheduler:', err));
 });
 

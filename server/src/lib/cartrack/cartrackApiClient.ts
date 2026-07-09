@@ -83,7 +83,11 @@ export class CartrackApiClient {
     throw lastError;
   }
 
-  async fetchAllPages<T>(endpoint: string, params?: Record<string, any>): Promise<T[]> {
+  async fetchAllPages<T>(
+    endpoint: string,
+    params?: Record<string, any>,
+    options?: { maxPages?: number },
+  ): Promise<T[]> {
     const firstPage = await this.get<CartrackPaginatedResponse<T>>(endpoint, {
       ...params,
       page: 1,
@@ -93,9 +97,19 @@ export class CartrackApiClient {
     if (!firstPage.data) return [];
 
     const allData: T[] = [...firstPage.data];
-    const totalPages = firstPage.meta?.total_pages || 1;
+    const totalPages = firstPage.meta?.last_page ?? firstPage.meta?.total_pages ?? 1;
 
-    for (let page = 2; page <= totalPages; page++) {
+    // High-volume streams (e.g. /vehicles/events can be hundreds of thousands of
+    // rows/day) get a page cap so a sync can't run away. Log when we truncate so
+    // coverage limits are never silent.
+    const pageLimit = options?.maxPages ? Math.min(totalPages, options.maxPages) : totalPages;
+    if (pageLimit < totalPages) {
+      console.warn(
+        `[Cartrack] ${endpoint}: capping at ${pageLimit} of ${totalPages} pages (${firstPage.meta?.total ?? '?'} total records) — increase maxPages to fetch more.`,
+      );
+    }
+
+    for (let page = 2; page <= pageLimit; page++) {
       const pageData = await this.get<CartrackPaginatedResponse<T>>(endpoint, {
         ...params,
         page,
@@ -167,9 +181,10 @@ export class CartrackApiClient {
     return this.fetchAllPages('/geofences/visitors', params);
   }
 
-  // Vehicle events (granular event stream)
-  async getVehicleEvents(params?: Record<string, any>) {
-    return this.fetchAllPages('/vehicles/events', params);
+  // Vehicle events (granular event stream — fleet-wide volume can be hundreds of
+  // thousands of rows/day, so callers pass a page cap).
+  async getVehicleEvents(params?: Record<string, any>, maxPages = 20) {
+    return this.fetchAllPages('/vehicles/events', params, { maxPages });
   }
   async getVehicleEventTypes(params?: Record<string, any>) {
     return this.get('/vehicles/events/types', params);

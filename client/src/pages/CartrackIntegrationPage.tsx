@@ -175,8 +175,27 @@ function ConfigTab() {
 
   const getValue = (key: string) => form[key] !== undefined ? form[key] : (config as any)?.[key] ?? '';
 
+  // A saved password comes back masked ("********"); the field itself always
+  // starts blank so we never round-trip the mask. Knowing one is stored lets us
+  // show a "saved" hint and keep it when the user saves other fields.
+  const hasStoredPassword = !!(config as any)?.apiPasswordEncrypted;
+
   const handleSave = () => {
-    updateConfig.mutate(form, { onSuccess: () => { setForm({}); setDirty(false); } });
+    const payload = { ...form };
+    // Blank password field = "keep the stored one" — don't send it (an empty
+    // string would fail validation and could wipe the saved password).
+    if (!payload.apiPassword) delete payload.apiPassword;
+    updateConfig.mutate(payload, { onSuccess: () => { setForm({}); setDirty(false); } });
+  };
+
+  // Test whatever is currently in the form (falling back to the saved config on
+  // the server), so credentials can be validated before they're saved.
+  const handleTest = () => {
+    testConnection.mutate({
+      apiBaseUrl: getValue('apiBaseUrl') || undefined,
+      apiUsername: getValue('apiUsername') || undefined,
+      apiPassword: form.apiPassword || undefined,
+    });
   };
 
   return (
@@ -185,13 +204,18 @@ function ConfigTab() {
         <div className="grid grid-cols-2 gap-4">
           <Input label="API Base URL" value={getValue('apiBaseUrl')} onChange={(e) => setField('apiBaseUrl', e.target.value)} />
           <Input label="Username" value={getValue('apiUsername')} onChange={(e) => setField('apiUsername', e.target.value)} />
-          <Input label="API Password" type="password" value={form.apiPassword ?? ''} placeholder="Enter new password" onChange={(e) => setField('apiPassword', e.target.value)} />
+          <Input label="API Password" type="password" value={form.apiPassword ?? ''} placeholder={hasStoredPassword ? '•••••••• saved — leave blank to keep' : 'Enter password'} onChange={(e) => setField('apiPassword', e.target.value)} />
           <div className="flex items-end">
-            <Button variant="secondary" onClick={() => testConnection.mutate()} isLoading={testConnection.isPending}>
+            <Button variant="secondary" onClick={handleTest} isLoading={testConnection.isPending}>
               Test Connection
             </Button>
           </div>
         </div>
+        {dirty && (
+          <p className="mt-3 text-xs text-ink-muted">
+            Test uses the values entered above. Click <span className="font-semibold">Save Configuration</span> to keep them.
+          </p>
+        )}
       </Card>
 
       <Card title="Sync Settings">
