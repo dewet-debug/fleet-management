@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+// In dev, this is unset -> baseURL '/api/v1' and Vite's proxy forwards to the
+// local backend. On Vercel, set VITE_API_URL to the Railway API base
+// (e.g. https://fleet-api.up.railway.app/api/v1) at build time.
+export const API_BASE = import.meta.env.VITE_API_URL || '/api/v1';
+
 const client = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE,
+  // Send the httpOnly refresh cookie on cross-origin calls (Vercel -> Railway).
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -76,9 +83,9 @@ client.interceptors.response.use(
     }
 
     try {
-      const { data } = await axios.post('/api/v1/auth/refresh', {
+      const { data } = await axios.post(`${API_BASE}/auth/refresh`, {
         refreshToken,
-      });
+      }, { withCredentials: true });
 
       const { accessToken, refreshToken: newRefreshToken } = data.data;
 

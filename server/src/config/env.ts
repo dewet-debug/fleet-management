@@ -21,6 +21,10 @@ export const env = {
   JWT_REFRESH_EXPIRY: '7d',
   UPLOAD_DIR: process.env.UPLOAD_DIR || './uploads',
 
+  // Comma-separated list of allowed browser origins for CORS (the Vercel URL[s]).
+  // Empty in local dev -> the server reflects the request origin (permissive).
+  CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || '',
+
   // Cartrack API
   CARTRACK_API_BASE_URL: process.env.CARTRACK_API_BASE_URL || 'https://fleetapi-za.cartrack.com/rest/',
   CARTRACK_API_USERNAME: process.env.CARTRACK_API_USERNAME || '',

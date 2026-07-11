@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+uploads
+npm-debug.log
+*.log
+.git
+prisma/dev.db
+prisma/migrations_sqlite_archive
+scripts
