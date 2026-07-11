@@ -1,4 +1,4 @@
-import client from './client';
+import client, { API_BASE } from './client';
 
 export interface BulkUploadResult {
   total: number;
@@ -21,4 +21,4 @@ export const uploadDrivers = (file: File) => uploadFile('/bulk-upload/drivers', 
 export const uploadServices = (file: File) => uploadFile('/bulk-upload/services', file);
 export const uploadAssignments = (file: File) => uploadFile('/bulk-upload/assignments', file);
 
-export const getTemplateUrl = (type: string) => `/api/v1/bulk-upload/templates/${type}`;
+export const getTemplateUrl = (type: string) => `${API_BASE}/bulk-upload/templates/${type}`;

@@ -19,3 +19,4 @@ vehicles-not-on-cartrack.xlsx
 
 # Local source dump — not a build input
 Fleet_Management_Source_Code.txt
+*.tsbuildinfo

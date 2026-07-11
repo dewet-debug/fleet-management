@@ -65,21 +65,26 @@ migration in Phase 2** — do not delete it.
 
 ---
 
-## Phase 2 — Migrate the 1.8 GB of data
+## Phase 2 — Re-import the data via the APIs (revised 2026-07-11)
 
-**Recommended tool: `pgloader`** (purpose-built SQLite→Postgres bulk migration; handles this size).
-Fallback: a table-by-table Node script using two Prisma clients.
+**Decision:** the old ~1.8 GB `dev.db` is not being migrated. It isn't on disk anymore (searched C/E/G/H —
+no `.db`/`.sqlite` file anywhere), and the pgloader path is painful on Windows. Since all the data is
+re-pullable from source, we **stand up an empty Postgres and re-import through the existing sync APIs**
+instead of doing a SQLite→Postgres bulk copy.
 
 Steps:
-1. Stand up the empty Postgres DB with the Phase-1 schema (`prisma migrate deploy`).
-2. `pgloader ./server/prisma/dev.db postgresql://…` (with a load file that skips Prisma's
-   `_prisma_migrations` table).
-3. Verify: compare row counts per table (SQLite vs Postgres) for the big `Cartrack*` tables.
+1. Point the app at Railway Postgres — set `DATABASE_URL` (pooled) + `DIRECT_URL` (direct) in `server/.env`.
+2. Stand up the empty schema: `prisma migrate deploy` (applies the Phase-1 `0_init` baseline → 35 tables).
+3. `npm run db:seed` for base/reference rows if needed.
+4. Re-import from source:
+   - **Cartrack** — trigger `POST /api/cartrack/sync` (or let the on-boot node-cron scheduler run).
+     Needs `CARTRACK_API_USERNAME`/`PASSWORD` populated (currently blank in `.env`).
+   - **Bolt** — use the in-app Bolt console (download/select trips). Bolt creds already in `.env`.
+5. Spot-check row counts on the big `Cartrack*` tables and the Bolt trip tables in the app.
 
-**Storage decision (settled):** use **Railway Postgres** and **keep the full 1.8 GB history.** Railway
-storage is usage-based (~a few $/mo for 1.8 GB), co-located with the backend, and on the same bill —
-so there's no reason to prune. Pruning was only attractive to squeeze under Supabase Free's 500 MB cap,
-which no longer applies.
+This drops the `pgloader`/`psql` tooling requirement entirely. Trade-off: telematics history only goes
+back as far as the source APIs let us re-pull; if that window is shorter than the old local history, the
+month-on-month / patterns / scorecard reports start from the re-import date forward.
 
 ---
 

@@ -31,7 +31,10 @@ import { startScheduler } from './lib/cartrack/syncScheduler';
 const app = express();
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
+// In production, restrict CORS to the configured client origin(s) (the Vercel URL).
+// With no CLIENT_ORIGIN set (local dev), reflect the request origin so localhost works.
+const allowedOrigins = env.CLIENT_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins.length ? allowedOrigins : true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

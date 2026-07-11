@@ -2,15 +2,23 @@ import { Request, Response, NextFunction } from 'express';
 import { RequestWithUser } from '../middleware/auth';
 import * as authService from '../services/auth.service';
 
+// Cross-origin deploy (Vercel front-end -> Railway API): the browser only keeps a
+// cookie sent from another origin if it is SameSite=None AND Secure. In local dev
+// (same origin, plain http) that combination is dropped, so fall back to Lax.
+const isProd = process.env.NODE_ENV === 'production';
+const refreshCookieBase = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+};
+
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password } = req.body;
     const result = await authService.login(email, password);
 
     res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...refreshCookieBase,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -33,9 +41,7 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
     const result = await authService.refreshToken(token);
 
     res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...refreshCookieBase,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -53,11 +59,7 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
+  res.clearCookie('refreshToken', refreshCookieBase);
 
   res.json({
     success: true,
