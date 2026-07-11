@@ -26,9 +26,9 @@ export async function updateConfig(req: Request, res: Response, next: NextFuncti
   } catch (error) { next(error); }
 }
 
-export async function testConnection(_req: Request, res: Response, next: NextFunction) {
+export async function testConnection(req: Request, res: Response, next: NextFunction) {
   try {
-    const result = await cartrackAdmin.testConnection();
+    const result = await cartrackAdmin.testConnection(req.body ?? {});
     res.json({ success: true, data: result });
   } catch (error) { next(error); }
 }

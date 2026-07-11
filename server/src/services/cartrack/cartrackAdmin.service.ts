@@ -13,11 +13,8 @@ export async function getOrCreateConfig() {
   if (!config) {
     config = await prisma.cartrackConfig.create({
       data: {
+        // Only the endpoint is pre-filled; credentials are entered via the UI.
         apiBaseUrl: cartrackConfig.apiBaseUrl,
-        apiUsername: cartrackConfig.apiUsername,
-        apiPasswordEncrypted: cartrackConfig.apiPassword
-          ? encrypt(cartrackConfig.apiPassword, cartrackConfig.encryptionKey)
-          : '',
       },
     });
   }
@@ -60,26 +57,37 @@ export async function updateConfig(data: any, userId: string) {
   };
 }
 
-export async function testConnection(): Promise<{ success: boolean; message: string; vehicleCount?: number }> {
+export async function testConnection(overrides?: {
+  apiBaseUrl?: string;
+  apiUsername?: string;
+  apiPassword?: string;
+}): Promise<{ success: boolean; message: string; vehicleCount?: number }> {
   const config = await prisma.cartrackConfig.findFirst();
-  if (!config) throw new BadRequestError('Cartrack config not found. Save credentials first.');
 
-  let password = '';
-  try {
-    password = config.apiPasswordEncrypted
-      ? decrypt(config.apiPasswordEncrypted, cartrackConfig.encryptionKey)
-      : '';
-  } catch {
-    password = cartrackConfig.apiPassword;
+  // Credentials come only from the UI: prefer an explicit override (the un-saved
+  // value typed into the config form), then the stored config. This lets an admin
+  // validate credentials *before* committing them to the DB. The base URL falls
+  // back to the default endpoint (not a credential) so the field is never blank.
+  const baseUrl = overrides?.apiBaseUrl || config?.apiBaseUrl || cartrackConfig.apiBaseUrl;
+  const username = overrides?.apiUsername || config?.apiUsername;
+
+  let password = overrides?.apiPassword || '';
+  if (!password) {
+    try {
+      password = config?.apiPasswordEncrypted
+        ? decrypt(config.apiPasswordEncrypted, cartrackConfig.encryptionKey)
+        : '';
+    } catch {
+      password = '';
+    }
   }
 
-  const username = config.apiUsername || cartrackConfig.apiUsername;
   if (!username || !password) {
-    throw new BadRequestError('API credentials not configured');
+    return { success: false, message: 'Enter a username and password before testing the connection.' };
   }
 
   const client = new CartrackApiClient({
-    baseUrl: config.apiBaseUrl || cartrackConfig.apiBaseUrl,
+    baseUrl,
     username,
     password,
   });

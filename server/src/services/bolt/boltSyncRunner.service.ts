@@ -130,6 +130,20 @@ async function runInternal(
       totals.updated += r.updated;
       totals.matched += r.matchedToVehicle;
       totals.errored += r.errored;
+
+      // Write running totals after each day so the console shows live progress
+      // (a big window can take a while; without this it reads as "stuck at 0").
+      await prisma.boltSyncLog.update({
+        where: { id: logId },
+        data: {
+          recordsFetched: totals.fetched,
+          recordsCreated: totals.created,
+          recordsUpdated: totals.updated,
+          recordsMatched: totals.matched,
+          recordsErrored: totals.errored,
+        },
+      });
+      console.log(`[Bolt] ${day}: +${r.fetched} (total fetched ${totals.fetched}, matched ${totals.matched})`);
     }
 
     await prisma.boltSyncLog.update({

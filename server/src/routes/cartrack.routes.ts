@@ -4,6 +4,7 @@ import { authorize } from '../middleware/rbac';
 import { validate } from '../middleware/validate';
 import {
   updateCartrackConfigSchema,
+  testConnectionSchema,
   addFleetVehicleSchema,
   bulkAddFleetVehiclesSchema,
   triggerSyncSchema,
@@ -18,7 +19,7 @@ router.use(authorize('ADMIN'));
 // Config
 router.get('/config', cartrackController.getConfig);
 router.patch('/config', validate(updateCartrackConfigSchema), cartrackController.updateConfig);
-router.post('/config/test-connection', cartrackController.testConnection);
+router.post('/config/test-connection', validate(testConnectionSchema), cartrackController.testConnection);
 
 // Fleet vehicle registry
 router.get('/fleet-vehicles', cartrackController.getFleetVehicles);

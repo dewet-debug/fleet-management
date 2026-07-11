@@ -16,6 +16,7 @@ import {
   HiOutlineMapPin,
   HiOutlineBanknotes,
   HiOutlineChartBar,
+  HiOutlineDocumentChartBar,
 } from 'react-icons/hi2';
 import type { IconType } from 'react-icons';
 
@@ -91,6 +92,9 @@ export default function Sidebar({ mobileOpen = false, onClose }: {
               <NavItem to="/bolt-trips" icon={HiOutlineReceiptPercent} label="Bolt Trips" onNavigate={onClose} />
               <NavItem to="/profitability" icon={HiOutlineBanknotes} label="Profitability" onNavigate={onClose} />
               <NavItem to="/driver-performance" icon={HiOutlineChartBar} label="Driver Perf." onNavigate={onClose} />
+              {(isAdmin || isManager) && (
+                <NavItem to="/reports" icon={HiOutlineDocumentChartBar} label="Reports" onNavigate={onClose} />
+              )}
               <NavItem to="/live-map" icon={HiOutlineMapPin} label="Live Map" onNavigate={onClose} />
               {(isAdmin || isManager) && (
                 <NavItem to="/bulk-upload" icon={HiOutlineArrowUpTray} label="Bulk Upload" onNavigate={onClose} />

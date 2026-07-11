@@ -30,11 +30,12 @@ async function getClient(): Promise<CartrackApiClient | null> {
       ? decrypt(config.apiPasswordEncrypted, cartrackConfig.encryptionKey)
       : '';
   } catch {
-    // If decryption fails, try using env var directly
-    password = cartrackConfig.apiPassword;
+    // Stored password can't be decrypted (e.g. the encryption key changed).
+    // Credentials come only from the UI, so treat this as "not configured".
+    password = '';
   }
 
-  const username = config.apiUsername || cartrackConfig.apiUsername;
+  const username = config.apiUsername;
   if (!username || !password) return null;
 
   return new CartrackApiClient({

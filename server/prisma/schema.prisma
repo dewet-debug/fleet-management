@@ -830,3 +830,41 @@ model BoltSyncLog {
   @@index([status])
   @@index([startedAt])
 }
+
+// Fleet financials imported from the operator's monthly P&L workbook
+// (MNC A49 monthly summary). One row per calendar month.
+model FleetFinancialMonth {
+  id                String   @id @default(uuid())
+  month             String   @unique // 'YYYY-MM'
+  monthLabel        String
+  vehiclesDelivered Int?
+  vehiclesActive    Int?
+  billedGross       Float
+  collected         Float
+  weeklyRental      Float?
+  cashBalance       Float?
+  totalFundBalance  Float?
+  profitFundBalance Float?
+  source            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Per-vehicle monthly rental billing/collection, imported from the operator's
+// monthly "Collections" tabs. Powers rental-vs-earnings and repeat-offender reports.
+model VehicleRentalMonth {
+  id              String   @id @default(uuid())
+  month           String   // 'YYYY-MM'
+  licensePlate    String
+  driverName      String?
+  driverId        String?
+  rentalBilled    Float
+  rentalCollected Float
+  excessKm        Float?
+  initiationFees  Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([month, licensePlate])
+  @@index([licensePlate])
+}

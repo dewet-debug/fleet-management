@@ -1,5 +1,6 @@
 import prisma from '../../config/database';
 import { CartrackApiClient, CartrackVehicleGroupResponse } from '../../lib/cartrack';
+import { skippableStatus } from './syncHelpers';
 
 interface SyncResult {
   fetched: number;
@@ -11,7 +12,17 @@ interface SyncResult {
 export async function syncVehicleGroups(client: CartrackApiClient): Promise<SyncResult> {
   const result: SyncResult = { fetched: 0, created: 0, updated: 0, errored: 0 };
 
-  const groups = await client.getVehicleGroups() as CartrackVehicleGroupResponse[];
+  let groups: CartrackVehicleGroupResponse[];
+  try {
+    groups = (await client.getVehicleGroups()) as CartrackVehicleGroupResponse[];
+  } catch (err) {
+    const skip = skippableStatus(err);
+    if (skip) {
+      console.warn(`[Cartrack] Vehicle-groups sync skipped (${skip} — API credentials lack this permission).`);
+      return result;
+    }
+    throw err;
+  }
   result.fetched = groups.length;
 
   for (const group of groups) {

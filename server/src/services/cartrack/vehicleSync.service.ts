@@ -72,19 +72,27 @@ export async function syncVehicles(client: CartrackApiClient): Promise<SyncResul
       });
 
       // Upsert vehicle data
+      const odometerMetres = cartrackVehicle.odometer ?? status?.odometer ?? null;
       const vehicleData = {
         cartrackVehicleId,
         registrationNumber: cartrackVehicle.registration,
         make: cartrackVehicle.make || null,
         model: cartrackVehicle.model || null,
         year: cartrackVehicle.year ? String(cartrackVehicle.year) : null,
-        odometer: cartrackVehicle.odometer ?? status?.odometer ?? null,
-        lastLatitude: status?.latitude ?? null,
-        lastLongitude: status?.longitude ?? null,
+        // Cartrack reports the odometer in METRES — convert to km so it matches
+        // Vehicle.currentKilometers (and doesn't read as millions).
+        odometer: odometerMetres != null ? Math.round(odometerMetres / 1000) : null,
+        // The status payload nests position under `location` and fuel under
+        // `fuel`, and reports the event time as `event_ts` — not the flat fields
+        // the old code read (which is why GPS/fuel never populated).
+        lastLatitude: status?.location?.latitude ?? null,
+        lastLongitude: status?.location?.longitude ?? null,
         lastSpeed: status?.speed ?? null,
-        lastIgnitionStatus: status?.ignition ?? null,
-        lastEventTime: status?.last_event_time ? new Date(status.last_event_time) : null,
-        fuelLevel: status?.fuel_level ?? null,
+        // Cartrack returns `ignition` as a boolean; the column is String? and the
+        // tracking API surfaces it as a string, so coerce (e.g. "true"/"false").
+        lastIgnitionStatus: status?.ignition != null ? String(status.ignition) : null,
+        lastEventTime: status?.event_ts ? new Date(status.event_ts) : null,
+        fuelLevel: status?.fuel?.level ?? null,
         rawVehicleJson: JSON.stringify(cartrackVehicle),
         rawStatusJson: status ? JSON.stringify(status) : null,
         fetchedAt: new Date(),

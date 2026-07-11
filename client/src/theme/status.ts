@@ -32,10 +32,12 @@ export const BOLT_STATUS: Record<string, Entry> = {
 
 // ---- Vehicle status ----
 export const VEHICLE_STATUS: Record<string, Entry> = {
-  ACTIVE:         { sem: 'success', label: 'Active' },
-  IN_SERVICE:     { sem: 'warning', label: 'In service' },
-  OUT_OF_SERVICE: { sem: 'danger',  label: 'Out of service' },
-  RETIRED:        { sem: 'neutral', label: 'Retired' },
+  ACTIVE:               { sem: 'success', label: 'Active' },
+  IN_SERVICE:           { sem: 'warning', label: 'In service' },
+  OUT_OF_SERVICE:       { sem: 'danger',  label: 'Out of service' },
+  RETIRED:              { sem: 'neutral', label: 'Retired' },
+  // Imported from a fleet sheet but missing source data (VIN/specs) — awaiting review.
+  PENDING_VERIFICATION: { sem: 'info',    label: 'Pending verification' },
 };
 
 // ---- Driver status ----
