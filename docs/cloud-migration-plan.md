@@ -3,17 +3,21 @@
 **Goal:** Everything lives in GitHub (source of truth). The app is reachable on a public URL from
 desktop and mobile. All future work flows through GitHub (branch → PR → CI → merge → auto-deploy).
 
-**Chosen stack (Option A):**
+**Chosen stack (Railway-only backend — decided 2026-07-11):**
 
 | Layer | Technology | Why |
 |-------|-----------|-----|
 | Frontend (React/Vite SPA) | **Vercel** | Auto-deploys from GitHub, global CDN, instant HTTPS + custom domain |
 | Backend (Express + Prisma + node-cron) | **Railway** | Always-on container → runs the Express app **and** the cron sync jobs unchanged |
-| Database | **Supabase Postgres** (or Railway Postgres) | Managed Postgres, replaces the local SQLite file |
-| File uploads | **Supabase Storage** | Durable object storage (container disks are ephemeral) |
+| Database | **Railway Postgres** | Co-located with the backend (low latency for cron + report aggregates), usage-based storage, one bill |
+| File uploads | **Railway Volume** | Persistent disk mounted on the backend; the upload flow needs no object-storage SDK |
 | Mobile | **Responsive web + PWA** | Public URL works in any mobile browser; PWA adds "install to home screen" |
 
-Data decision: **migrate the existing ~1.8 GB of local data** into hosted Postgres (not start fresh).
+**Supabase is dropped from the stack.** Railway Postgres holds the data and a Railway Volume holds the
+one 60 KB upload, so the whole app is just **Vercel + Railway** — two vendors, two accounts, one backend bill.
+
+Data decision: **migrate the existing ~1.8 GB of local data** into Railway Postgres (keep full history — the
+telematics data powers the month-on-month / patterns / scorecard reports, so we do **not** prune).
 
 ---
 
@@ -26,7 +30,8 @@ Data decision: **migrate the existing ~1.8 GB of local data** into hosted Postgr
 - ⚠️ ~1.8 GB of data, almost all telematics history in the `Cartrack*` tables.
 - ⚠️ Auth cookies are `sameSite: 'strict'` and CORS is `origin: true` — both must change for a
   cross-origin (Vercel ↔ Railway) deployment.
-- ⚠️ Uploads write to a local `./uploads` dir (one 60 KB file today) — must move to object storage.
+- ⚠️ Uploads write to a local `./uploads` dir (one 60 KB file today) — must move onto a Railway Volume
+  (container disks are otherwise ephemeral).
 
 ---
 
@@ -71,24 +76,20 @@ Steps:
    `_prisma_migrations` table).
 3. Verify: compare row counts per table (SQLite vs Postgres) for the big `Cartrack*` tables.
 
-**⚠️ Storage/cost gate — decide before provisioning:**
-- Supabase **Free** = 500 MB DB → **1.8 GB will not fit.**
-- Supabase **Pro** ($25/mo) = 8 GB DB → fits comfortably.
-- Alternative: **Railway Postgres** (usage-based storage, co-located with the backend → lower latency,
-  one bill). Attractive if we keep the full history.
-- Or **prune** high-volume telematics history (e.g. keep last N months of `CartrackVehicleData` /
-  `CartrackTrip` / events) to fit a cheaper tier, since that data is re-syncable from Cartrack.
-
-> **Open decision:** Supabase Pro vs Railway Postgres vs prune-then-Supabase-Free. See "Decisions needed".
+**Storage decision (settled):** use **Railway Postgres** and **keep the full 1.8 GB history.** Railway
+storage is usage-based (~a few $/mo for 1.8 GB), co-located with the backend, and on the same bill —
+so there's no reason to prune. Pruning was only attractive to squeeze under Supabase Free's 500 MB cap,
+which no longer applies.
 
 ---
 
-## Phase 3 — Uploads → Supabase Storage
+## Phase 3 — Uploads → Railway Volume
 
-- Replace the multer-memory → local-disk flow with an upload to a Supabase Storage bucket; persist the
-  returned public URL (instead of `/uploads/<file>`).
-- Remove the `express.static('/uploads')` serving.
-- Migrate the existing file(s) in `server/uploads/` into the bucket (trivial — one 60 KB file today).
+- Provision a **Railway Volume** and mount it at the path the app already writes to (e.g. `/data/uploads`);
+  point the upload dir at that mount via an env var (`UPLOAD_DIR`).
+- The existing multer → local-disk flow and `express.static` serving stay **as-is** — the code doesn't
+  change, only the target directory becomes a persistent mount instead of the ephemeral container disk.
+- Copy the existing file(s) from `server/uploads/` onto the volume once (trivial — one 60 KB file today).
 
 ---
 
@@ -99,7 +100,8 @@ Steps:
 2. Build `npm run build`; start `node dist/index.js`; release command `prisma migrate deploy`.
 3. Env vars (from `server/.env.example`): `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`,
    `JWT_REFRESH_SECRET`, `CARTRACK_*`, `BOLT_*`, `CARTRACK_ENCRYPTION_KEY`, `NODE_ENV=production`,
-   plus Supabase Storage keys and `CLIENT_ORIGIN` (the Vercel URL).
+   `UPLOAD_DIR` (the Railway Volume mount path), and `CLIENT_ORIGIN` (the Vercel URL).
+   Railway injects `DATABASE_URL`/`DIRECT_URL` automatically when you add the Postgres plugin.
 4. **Required auth fixes (cross-origin):**
    - `cors({ origin: true })` → `cors({ origin: process.env.CLIENT_ORIGIN, credentials: true })`.
    - Auth cookies `sameSite: 'strict'` → `sameSite: 'none'` **and** `secure: true` in production
@@ -161,7 +163,7 @@ Optionally: `.gitattributes` with `* text=auto eol=lf` to stop the Windows CRLF/
 | `CARTRACK_API_USERNAME/PASSWORD/BASE_URL` | Railway | telematics |
 | `CARTRACK_ENCRYPTION_KEY` | Railway | **must match** the key used to encrypt stored creds |
 | `BOLT_CLIENT_ID/SECRET/OIDC_TOKEN_URL/OAUTH_SCOPE` | Railway | OAuth2 |
-| Supabase Storage service key | Railway | uploads |
+| `UPLOAD_DIR` | Railway | mount path of the Railway Volume for uploads |
 | `CLIENT_ORIGIN` | Railway | CORS allow-list = Vercel URL |
 | `VITE_API_URL` | Vercel | Railway backend URL |
 
@@ -172,25 +174,27 @@ Optionally: `.gitattributes` with `* text=auto eol=lf` to stop the Windows CRLF/
 | Service | Plan | Est. |
 |---------|------|------|
 | Vercel | Pro (commercial use isn't covered by Hobby) | ~$20/mo |
-| Railway | Hobby, always-on service | ~$5–10/mo |
-| Supabase | Pro (needed for >500 MB) *or* Railway Postgres usage | ~$25/mo *(or usage-based)* |
-| **Total** | | **~$30–55/mo** |
+| Railway | Hobby: always-on backend + Postgres + Volume (usage-based) | ~$5–15/mo |
+| **Total** | | **~$25–35/mo** |
 
-> This is higher than the earlier "$5–10" ballpark because keeping the full 1.8 GB of history and
-> commercial-grade hosting both cost money. Pruning telematics history and/or using Railway Postgres
-> can bring this down.
+> Railway-only (no Supabase) lands us near the low end: the 1.8 GB of history is billed as usage on
+> Railway rather than forcing a flat $25 Supabase Pro tier. The biggest single line is Vercel Pro,
+> required because commercial use isn't covered by Vercel's free Hobby plan.
 
 ---
 
-## Decisions needed before I start building
+## Decisions made (2026-07-11)
 
-1. **Postgres host:** Supabase Pro ($25/mo, 8 GB) vs Railway Postgres (usage-based, co-located) vs
-   prune history to fit Supabase Free.
-2. **Custom domain?** (e.g. `fleet.yourdomain.com`) or use the free `*.vercel.app` / `*.railway.app`
-   URLs to start.
-3. **Account creation:** Vercel, Railway, and Supabase accounts are created by you (I can't sign up on
-   your behalf). Once created, I can wire up configs, env-var lists, `vercel.json`, CI, and all the
-   code changes above.
+1. **Postgres host:** ✅ **Railway Postgres**, keep the full 1.8 GB history (no prune). Supabase dropped.
+2. **Domain:** ✅ **Start on the free `*.vercel.app` / `*.railway.app` URLs** to get live fast; buy and
+   point a custom domain (e.g. `fleet.jigsaw-ai.com`) once the app is stable — a 5-min DNS swap on Vercel,
+   no code change.
+
+## Still needed from you
+
+- **Account creation:** **Vercel** and **Railway** accounts are created by you (I can't sign up on your
+  behalf). Once they exist, I wire up configs, env-var lists, `vercel.json`, CI, the Volume mount, and all
+  the code changes above. (No Supabase account needed anymore.)
 
 ---
 
