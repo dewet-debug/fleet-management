@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (pgBouncer) — used by the app at runtime
+  directUrl = env("DIRECT_URL")   // direct connection — used for migrations
 }
 
 // Note: SQLite doesn't support enums. We use String fields with validation at the app layer.
