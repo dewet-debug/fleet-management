@@ -28,6 +28,16 @@ import analyticsRoutes from './routes/analytics.routes';
 import reportsRoutes from './routes/reports.routes';
 import { startScheduler } from './lib/cartrack/syncScheduler';
 
+// Surface any otherwise-silent startup crash in the container logs.
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] uncaughtException:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[FATAL] unhandledRejection:', err);
+});
+console.log(`[boot] starting fleet-management server — NODE_ENV=${process.env.NODE_ENV} PORT=${process.env.PORT}`);
+
 const app = express();
 
 // Middleware
@@ -91,8 +101,8 @@ async function clearOrphanedSyncLogs() {
   }
 }
 
-app.listen(env.PORT, () => {
-  console.log(`Server running on port ${env.PORT}`);
+app.listen(env.PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${env.PORT} (bound 0.0.0.0)`);
   clearOrphanedSyncLogs();
   startScheduler().catch((err) => console.error('Failed to start Cartrack scheduler:', err));
 });
